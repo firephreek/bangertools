@@ -148,6 +148,7 @@ dependencies = [
     { name = "pynbody" },
     { name = "scipy" },
     { name = "scipy-stubs" },
+    { name = "typer" },
     { name = "vizpy" },
 ]
 
@@ -159,6 +160,7 @@ requires-dist = [
     { name = "pynbody", specifier = ">=2.4.2" },
     { name = "scipy", specifier = ">=1.17.1" },
     { name = "scipy-stubs", specifier = "~=1.17.1" },
+    { name = "typer", specifier = ">=0.25.1" },
     { name = "vizpy", specifier = ">=2.4.0" },
 ]
 
