@@ -1,12 +1,7 @@
 import sys
-from typing import Any
 
-import pynbody
 import numpy as np
-import matplotlib as plt
-from pynbody.snapshot import SimSnap, FamilySubSnap
-
-from collapse_analysis import s
+import pynbody
 
 # constants
 MSUN_GRAM = 2e30
@@ -19,37 +14,7 @@ PHYSICAL_WIDTH_INCHES = PHYSICAL_WIDTH_KPC * KPC_TO_INCHES
 DEN_TO_AMUCC = (MSUN_GRAM * MUNIT) / (PCCM * MP)
 
 
-def BH_pltcoord(BH, s):
-    import matplotlib.pylab as plt
-    # Plot the scatter plot with matching size
-    # halo pic
-    start = 0
-    which_BH = 0
-
-    for _ in BH:
-        max_runs = len(BH)
-        if start >= max_runs:
-            break
-
-        BHx = BH['x']
-        BHy = BH['y']
-        plt.scatter(BHx, BHy, c='black', marker='o', label='Data Points')
-        plt.text(BHx[start] - 0.05, BHy[start] - 0.05, str(start))
-        which_BH = which_BH + 1
-
-        start = start + 1
-
-    plt.xlim(-1, 1)
-    plt.ylim(-1, 1)
-    plt.figure(figsize=(75, 75))
-    plt.show()
-
-    pynbody.plot.image(s.gas, units="Msol kpc^-2", cmap="BuPu", width=2)
-    plt.show()
-
-
-# Includes relative hcom position, tform, mass, rho, temp
-def main(input_file):
+def convert(input_file):
     starlog_file = input_file[:input_file.rfind('.')] + '.starlog'
     simulation = pynbody.load(input_file)
     simulation.physical_units()  # What does this call do exactly --SNC
@@ -108,43 +73,12 @@ def main(input_file):
 
     print("there are this many stars: ", len(stars))
 
-    # halo pic
-    pynbody.plot.image(s.gas, units="Msol kpc^-2", cmap="BuPu", width = 2)
-    plt.show()
 
-    #Let's take a look-see
-    def BH_pltcoord(s):
-        # halo pic
-        start = 0
+# Includes relative hcom position, tform, mass, rho, temp
+def main():
+    input_file = sys.argv[1]
+    convert(input_file)
 
-        kpc_to_inches = 0.0195
-        physical_width_kpc = 300
-        physical_width_inches = physical_width_kpc * kpc_to_inches
-        which_BH = 0
-
-        for BH_len in BH:
-            max_runs = len(BH)
-            if start >= max_runs:
-                break
-
-            BHx = BH['x']
-            BHy = BH['y']
-            plt.scatter(BHx, BHy, c='black', marker='o' , label='Data Points')
-            plt.text(BHx[start] - 0.05,BHy[start] - 0.05,str(start))
-            which_BH = which_BH + 1
-
-            start = start + 1
-
-        plt.xlim(-1, 1)
-        plt.ylim(-1, 1)
-        plt.figure(figsize=(75, 75))
-        plt.show()
-
-    BH_pltcoord(s)
-
-# Plot the scatter plot with matching size
-''
 
 if __name__ == '__main__':
-    input_file = sys.argv[1]
-    main(input_file)
+    main()
