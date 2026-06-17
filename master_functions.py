@@ -1,59 +1,95 @@
-import pynbody as pn
-import numpy as np
-import pandas as pd
-import sys
 import os
 from collections import Counter
+from typing import Annotated
+
 import matplotlib.pyplot as plt
+import numpy as np
+import pynbody as pn
+from pandas import Series, read_csv, DataFrame
+from typer import Argument, Typer
 
-h = 0.67  # Hubble param to convert M_sun/h to M_sun
-hi_res_cut = 0.0  # fMhires threshold
+# setup typer. This gives us a nice cli framework to call commands with
+app = Typer()
+
+# constants
+HUBBLE_CONST = 0.67  # Hubble param to convert M_sun/h to M_sun
+HI_RES_CUT = 0.0  # fMhires threshold
+G_CGS = 6.674e-8
+MSOL_CGS = 1.989e33
+KPC_CGS = 3.086e21
+M_UNIT = 1.84793e16
+R_UNIT = 50000.0
+
+# helper types for the cli
+SnapshotPath = Annotated[str, Argument(help="The path to the snapshot file")]
+AHFPath = Annotated[str, Argument(help="The path to the snapshot file")]
 
 
-# load snapshot + AHF
-def load_snapshot():
-    s = pn.load('')
-    s.physical_units()  # converting code units to physical units
-    return s
+def load_snapshot(file_path: str, convert_units: bool = True):
+    snapshot = pn.load(file_path)
+    if convert_units:
+        snapshot.physical_units()  # converting code units to physical units
+    return snapshot
 
 
-def load_AHF():
-    AHF = pd.read_csv('', sep='\t', header=0)
+def load_AHF(csv_file: str):
+    AHF = read_csv(csv_file, sep='\t', header=0)
     return AHF
 
-
-# functions
-# listing the keys in the snapshot
-def snap_keys(s):
-    print(f"keys inside the snapshot are: {s.loadable_keys()}")
-
-
-# printing min and max DM particle mass and their ratio
-def dm_minmax(s):
-    print(f" minimum DM particle mass: {s.dm['mass'].min(): .3e}")
-    print(f" max DM particle mass: {s.dm['mass'].max(): .3e}")
-    print(f" ratio: {s.dm['mass'].max() / s.dm['mass'].min(): .3e}")
-
-
-# printing the entire dictionary in AHF
-def AHF_keys(AHF):
-    print(f"keys inside the AHF are: {AHF.columns.tolist()}")
+# This is a decorator that turns the function into a cli command (https://typer.tiangolo.com/tutorial/commands/arguments/)
+# The Annotation is a type hint that typer can use to automatically populate the help menu.
+@app.command(name="keys")
+def snap_keys(file_path: Annotated[str, Argument(help="Path to the file")]):
+    """
+    List all the keys in the AHF halo catalog or snapshot file
+    """
+    try:
+        snapshot = load_snapshot(file_path)
+        print(f"keys inside the snapshot are: {snapshot.loadable_keys()}")
+    except OSError:  # Invalid snap file, must be an AHF...
+        AHF = load_AHF(file_path)
+        print(f"keys inside the AHF are: {AHF.columns.tolist()}")
+    except:
+        print(f"Unrecognized file {file_path}")
 
 
-# finding the total number of halos in AHF
-def AHF_halo_info(AHF):
+# The SnapshotPath defined here is an Annotated class, just the one we defined earlier.
+@app.command(name="minmax")
+def dm_minmax(snapshot_path: SnapshotPath):
+    """
+    Print min/max DM particle mass and their ratio
+    """
+    snapshot = load_snapshot(snapshot_path)
+
+    print(f" minimum DM particle mass: {snapshot.dm['mass'].min(): .3e}")
+    print(f" max DM particle mass: {snapshot.dm['mass'].max(): .3e}")
+    print(f" ratio: {snapshot.dm['mass'].max() / snapshot.dm['mass'].min(): .3e}")
+
+
+@app.command(name="info")
+def AHF_halo_info(ahf_path: AHFPath):
+    """
+    Print total number of halos in AHF
+    """
+
+    AHF = load_AHF(ahf_path)
     print(f"total number of halos: {len(AHF)}")
 
 
-# printing the corrected halo masses and the most and least massive halos
-def AHF_halo_mass(AHF):
+@app.command(name="mass")
+def AHF_halo_mass(ahf_path: AHFPath):
+    """
+    Print halo masses and most/least massive halo
+    """
+    AHF = load_AHF(ahf_path)
+
     unique_vals = sorted(AHF['fMhires(38)'].unique())
-    AHF = AHF[(AHF['#ID(1)'] != 0) & (AHF['fMhires(38)'] >= hi_res_cut)].copy()
+    AHF = AHF[(AHF['#ID(1)'] != 0) & (AHF['fMhires(38)'] >= HI_RES_CUT)].copy()
     if AHF.empty:
-        print(f"No halos matched hi_res_cut = {hi_res_cut} (fMhires >= {hi_res_cut}).")
+        print(f"No halos matched hi_res_cut = {HI_RES_CUT} (fMhires >= {HI_RES_CUT}).")
         print(f"fMhires range in catalog: {unique_vals[0]:.3f} – {unique_vals[-1]:.3f}")
         return
-    AHF['Mhalo(4)'] = AHF['Mhalo(4)'] / h
+    AHF['Mhalo(4)'] = AHF['Mhalo(4)'] / HUBBLE_CONST
 
     ids = AHF['#ID(1)']
     masses = AHF['Mhalo(4)']
@@ -63,15 +99,26 @@ def AHF_halo_mass(AHF):
     print(f"least massive: halo {ids[masses.idxmin()]} with {masses.min():.3e} M_sun")
 
 
-# counting BHs in the snapshot
-def BH_count(s):
-    bhs = s.star[s.star['tform'] < 0]
+@app.command(name="count")
+def BH_count(snapshot_path: SnapshotPath):
+    """
+    Counts BHs in the snapshot
+    """
+
+    snapshot = load_snapshot(snapshot_path)
+    bhs = snapshot.star[snapshot.star['tform'] < 0]
     print(f'total number of BHs: {len(bhs)}')
 
 
-# counting & IDing how many halos have BHs in them
-def BH_halos(s, AHF):
-    bhs = s.star[s.star['tform'] < 0]
+@app.command("halos")
+def BH_halos(snapshot_path: SnapshotPath, ahf_path: AHFPath):
+    """
+    Print which halos contain BHs and their masses
+    """
+
+    snapshot = load_snapshot(snapshot_path)
+    AHF = load_AHF(ahf_path)
+    bhs = snapshot.star[snapshot.star['tform'] < 0]
     bh_grp = bhs['amiga.grp']  # halo ID each BH belongs to
     counts = Counter(bh_grp)  # number of BHs per halo [halo_id: count]
 
@@ -79,30 +126,37 @@ def BH_halos(s, AHF):
         if halo_id == 0:
             continue  # skip halo 0
         mass = AHF.loc[AHF['#ID(1)'] == halo_id, 'Mhalo(4)'].values[
-                   0] / h  # selecting data by location, true/fals mask, true for halo ID matches the loop
+                   0] / HUBBLE_CONST  # selecting data by location, true/fals mask, true for halo ID matches the loop
         print(f"halo {halo_id} has {n} BH(s) with {mass:.3e} M_sun")
 
 
-# checking the mass range of the halos in CSV
-def mass_range():
-    df = pd.read_csv('halo_masses.csv')
-    masses = df['Mhalo(4)'] / h
+@app.command(name="halo-masses")
+def mass_range(file_path="halo_masses.csv"):
+    """
+    Print min/max halo mass from the saved CSV
+    """
+    df = read_csv(file_path)
+    masses: Series = df['Mhalo(4)'] / HUBBLE_CONST
     print(f"mass range of clean halos in halo_masses.csv:")
     print(f"min mass: {masses.min():.3e} M_sun")
     print(f"max mass: {masses.max():.3e} M_sun")
 
 
-# writing the full halos + BHs csv (will be used for the occupation fraction plot)
-def write_csvs():
-    ahf = load_AHF()
-    s = load_snapshot()
-    correct_masses = ahf[(ahf['#ID(1)'] != 0) & (ahf['fMhires(38)'] >= hi_res_cut)][['#ID(1)', 'Mhalo(4)']].copy()
+@app.command(name="write-csv")
+def write_csvs(snapshot_path: SnapshotPath, ahf_path: AHFPath):
+    """
+    Write halo_masses.csv and BH_masses.csv to be used for the occupation fraction plot
+    """
+
+    ahf = load_AHF(ahf_path)
+    snapshot = load_snapshot(snapshot_path)
+    correct_masses = ahf[(ahf['#ID(1)'] != 0) & (ahf['fMhires(38)'] >= HI_RES_CUT)][['#ID(1)', 'Mhalo(4)']].copy()
     mass_of_halo_1 = ahf['Mhalo(4)'][1]
     print(f" mass of halo 1 is: {mass_of_halo_1}")
     correct_masses = correct_masses[correct_masses <= mass_of_halo_1]
     correct_masses.to_csv('halo_masses.csv', index=False)
     # s['amiga.grp']  # pre loading group array
-    bhs = s.star[s.star['tform'] < 0]
+    bhs = snapshot.star[snapshot.star['tform'] < 0]
     counts = Counter(bhs['amiga.grp'])  # counting how many BHs are in each halo, returns a dictionary {halo_id: count}
     print(f" the val of counts is: {counts}")
 
@@ -123,7 +177,6 @@ def write_csvs():
     print(f" the val of halos is {halos}")
 
     # getting halo masses
-
     for halo_id in halos:
         row = ahf.loc[ahf['#ID(1)'] == halo_id]
 
@@ -131,15 +184,19 @@ def write_csvs():
         BH_halo_id.append(halo_id)  # add the halo ID and mass to the BH halo lists
         BH_halo_masses.append(mass)
 
-    dfBH = pd.DataFrame({'halo_id': BH_halo_id, 'Mhalo(4)': BH_halo_masses})
+    dfBH = DataFrame({'halo_id': BH_halo_id, 'Mhalo(4)': BH_halo_masses})
     dfBH.to_csv('BH_masses.csv', index=False)
     print("saved halo_masses.csv and BH_masses.csv")
 
 
-# making  OF plot
-def plot_of_pretty(n):
-    halo_mass = pd.read_csv('halo_masses.csv')['Mhalo(4)'] / h
-    BH_halo_mass = pd.read_csv('BH_masses.csv')['Mhalo(4)'] / h
+@app.command(name="plot")
+def plot_of_pretty(n: Annotated[int, Argument(help="Seed value")]):
+    """
+    Plot with bin counts annotated and color coding
+    """
+
+    halo_mass = read_csv('halo_masses.csv')['Mhalo(4)'] / HUBBLE_CONST
+    BH_halo_mass = read_csv('BH_masses.csv')['Mhalo(4)'] / HUBBLE_CONST
 
     log_min = np.floor(
         np.log10(halo_mass.min()))  # find log 10 of the least massive halo, round down to nearest integer for min edge
@@ -189,32 +246,40 @@ def plot_of_pretty(n):
     plt.tight_layout()
     plt.show()
 
-    # converting kick velocity from code units to km/s
 
+@app.command(name="vkick")
+def conv_vkick(value: Annotated[float, Argument(help="The floating point value of the kick")]):
+    """
+    Convert a kick velocity from code units to km/s
+    """
 
-def conv_vkick(value):
-    G_CGS = 6.674e-8
-    MSOL_CGS = 1.989e33
-    KPC_CGS = 3.086e21
-    M_unit = 1.84793e16
-    r_unit = 50000.0
-    dKmPerSecUnit = (1.0 / 1e5) * np.sqrt(G_CGS * M_unit * MSOL_CGS / (r_unit * KPC_CGS))
+    dKmPerSecUnit = (1.0 / 1e5) * np.sqrt(G_CGS * M_UNIT * MSOL_CGS / (R_UNIT * KPC_CGS))
     print(f"{value} code units = {value * dKmPerSecUnit:.4f} km/s")
 
 
-# manually checking the fMhires values
-def check_fMhires(AHF):
+@app.command(name="fMhires")
+def check_fMhires(ahf_path: AHFPath):
+    """
+    Prints fMhires values for the first few halos to verify their values
+    """
+    AHF = load_AHF(ahf_path)
     print(AHF[['#ID(1)', 'Mhalo(4)', 'fMhires(38)']].head(10).to_string())
 
 
-# checking snapshots for zeros
-def check_snapshot_zeros(s):
-    print(f"Checking snapshot: {s.filename}")
+@app.command(name="zeros")
+def check_snapshot_zeros(snapshot_path: SnapshotPath):
+    """
+    Check for zero mass particles in the snapshot
+    """
+    snapshot = load_snapshot(snapshot_path)
+
+    print(f"Checking snapshot: {snapshot.filename}")
     # checking for 0 mass particles
-    zero_dm = np.sum(s.dm['mass'] == 0)
-    zero_gas = np.sum(s.gas['mass'] == 0)
-    zero_star = np.sum(s.star['mass'] == 0)
-    nan_mass = np.sum(np.isnan(s.dm['mass'])) + np.sum(np.isnan(s.gas['mass'])) + np.sum(np.isnan(s.star['mass']))
+    zero_dm = np.sum(snapshot.dm['mass'] == 0)
+    zero_gas = np.sum(snapshot.gas['mass'] == 0)
+    zero_star = np.sum(snapshot.star['mass'] == 0)
+    nan_mass = np.sum(np.isnan(snapshot.dm['mass'])) + np.sum(np.isnan(snapshot.gas['mass'])) + np.sum(
+        np.isnan(snapshot.star['mass']))
 
     print(f"Number of zero mass DM particles: {zero_dm}")
     print(f"Number of zero mass gas particles: {zero_gas}")
@@ -239,9 +304,15 @@ def check_snapshot_zeros(s):
         print("  OK: No NaN mass particles found.")
 
 
-# removing zero mass particles from the snapshot + updating the startrun
+@app.command(name="fix-zeros")
+def fix_zeros(snapshot_path: SnapshotPath):
+    """
+    Create a clean snapshot without zero mass particles and update startruns.txt to use it
+    """
 
-def fix_snapshot_zeros(s, snapshot_path):
+    snapshot = load_snapshot(snapshot_path)
+    snapshot_path = snapshot.filename
+
     if snapshot_path.endswith('.original'):
         print("Snapshot is already a backup (.original), skipping.")
         return
@@ -280,72 +351,5 @@ def fix_snapshot_zeros(s, snapshot_path):
     print(f"Updated startrun: {startrun_path}")
 
 
-# main
-command = sys.argv[1] if len(sys.argv) > 1 else None
-
-if command == "snap_keys":
-    snap_keys(load_snapshot())
-
-elif command == "dm_minmax":
-    dm_minmax(load_snapshot())
-
-elif command == "AHF_keys":
-    AHF_keys(load_AHF())
-
-elif command == "halo_count":
-    AHF_halo_info(load_AHF())
-
-elif command == "halo_mass":
-    AHF_halo_mass(load_AHF())
-
-elif command == "BH_count":
-    BH_count(load_snapshot())
-
-elif command == "BH_halos":
-    BH_halos(load_snapshot(), load_AHF())
-
-elif command == "mass_range":
-    mass_range()
-
-elif command == "write_csv":
-    write_csvs()
-
-
-elif command == "plot_of":
-    n = int(sys.argv[2].replace('-n', ''))
-    plot_of_pretty(n)
-
-elif command == "conv_vkick":
-    value = float(sys.argv[2])
-    conv_vkick(value)
-
-elif command == "check_hires":
-    check_fMhires(load_AHF())
-
-elif command == "check_zeros":
-    check_snapshot_zeros(load_snapshot())
-
-elif command == "fix_zeros":
-    s = load_snapshot()
-    fix_snapshot_zeros(s, s.filename)
-
-
-else:
-    print("Please enter one of the following commands:")
-    print("python master_functions.py snap_keys — list all loadable keys in the snapshot")
-    print("python master_functions.py dm_minmax — print min/max DM particle mass and their ratio")
-    print("python master_functions.py AHF_keys  — list all columns in the AHF halo catalog")
-    print("python master_functions.py halo_count — print total number of halos in AHF")
-    print("python master_functions.py halo_mass — print halo masses and most/least massive halo")
-    print("python master_functions.py BH_count — print total number of black holes in the snapshot")
-    print("python master_functions.py BH_halos — print which halos contain BHs and their masses")
-    print("python master_functions.py mass_range — print min/max halo mass from the saved CSV")
-    print("python master_functions.py write_csv — write halo_masses.csv and BH_masses.csv")
-    print(
-        "python master_functions.py plot_of_pretty -n5 — same but with bin counts annotated and color coding")  # example with 5 bins for the OF
-    print("python master_functions.py conv_vkick <comoving velocity> — convert a kick velocity from code units to km/s")
-    print(
-        "python master_functions.py check_hires — print fMhires values for the first few halos to verify their values")
-    print("python master_functions.py check_zeros — check for zero mass particles in the snapshot")
-    print(
-        "python master_functions.py fix_zeros — create a cleaned snapshot without zero mass particles and update startruns.txt to use it")
+if __name__ == '__main__':
+    app()
