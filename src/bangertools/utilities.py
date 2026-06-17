@@ -3,10 +3,6 @@ import os
 from collections import Counter
 from typing import Annotated
 
-import matplotlib.pyplot as plt
-import numpy as np
-import pynbody as pn
-from pandas import Series, read_csv, DataFrame
 from rich import print
 from typer import Argument, Typer
 
@@ -27,18 +23,18 @@ SnapshotPath = Annotated[str, Argument(help="The path to the snapshot file")]
 AHFPath = Annotated[str, Argument(help="The path to the snapshot file")]
 
 
+def load_AHF(file_path: str):
+    from pandas import read_csv
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"File '{file_path}' does not exist")
+    return read_csv(file_path, sep='\t', header=0)
+
 def load_snapshot(file_path: str, convert_units: bool = True):
+    import pynbody as pn
     snapshot = pn.load(file_path)
     if convert_units:
         snapshot.physical_units()  # converting code units to physical units
     return snapshot
-
-
-def load_AHF(ahf_filepath: str):
-    if not os.path.exists(ahf_filepath):
-        raise FileNotFoundError(f"File '{ahf_filepath}' does not exist")
-    AHF = read_csv(ahf_filepath, sep='\t', header=0)
-    return AHF
 
 
 def snap_keys(file_path: Annotated[str, Argument(help="Path to the file")]):
@@ -133,8 +129,10 @@ def mass_range(file_path="halo_masses.csv"):
     """
     Print min/max halo mass from the saved CSV
     """
+    from pandas import read_csv
+
     df = read_csv(file_path)
-    masses: Series = df['Mhalo(4)'] / HUBBLE_CONST
+    masses = df['Mhalo(4)'] / HUBBLE_CONST
     print(f"mass range of clean halos in halo_masses.csv:")
     print(f"min mass: {masses.min():.3e} M_sun")
     print(f"max mass: {masses.max():.3e} M_sun")
@@ -144,6 +142,9 @@ def write_csvs(snapshot_path: SnapshotPath, ahf_path: AHFPath):
     """
     Write halo_masses.csv and BH_masses.csv to be used for the occupation fraction plot
     """
+
+    import numpy as np
+    from pandas import DataFrame
 
     snapshot = load_snapshot(snapshot_path)
     if ahf_path is None:
@@ -193,6 +194,10 @@ def plot_of_pretty(n: Annotated[int, Argument(help="Seed value")]):
     """
     Plot with bin counts annotated and color coding
     """
+
+    import matplotlib.pyplot as plt
+    import numpy as np
+    from pandas import read_csv
 
     halo_mass = read_csv('halo_masses.csv')['Mhalo(4)'] / HUBBLE_CONST
     BH_halo_mass = read_csv('BH_masses.csv')['Mhalo(4)'] / HUBBLE_CONST
@@ -250,6 +255,7 @@ def conv_vkick(value: Annotated[float, Argument(help="The floating point value o
     """
     Convert a kick velocity from code units to km/s
     """
+    import numpy as np
 
     dKmPerSecUnit = (1.0 / 1e5) * np.sqrt(G_CGS * M_UNIT * MSOL_CGS / (R_UNIT * KPC_CGS))
     print(f"{value} code units = {value * dKmPerSecUnit:.4f} km/s")
@@ -267,6 +273,7 @@ def check_snapshot_zeros(snapshot_path: SnapshotPath):
     """
     Check for zero mass particles in the snapshot
     """
+    import numpy as np
     snapshot = load_snapshot(snapshot_path)
 
     print(f"Checking snapshot: {snapshot.filename}")
@@ -301,6 +308,7 @@ def check_snapshot_zeros(snapshot_path: SnapshotPath):
 
 
 def fix_zeros(snapshot_path: SnapshotPath):
+    import pynbody as pn
     """
     Create a clean snapshot without zero mass particles and update startruns.txt to use it
     """

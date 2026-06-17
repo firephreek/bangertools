@@ -1,7 +1,5 @@
 import sys
 
-import numpy as np
-import pynbody
 
 # constants
 MSUN_GRAM = 2e30
@@ -15,6 +13,9 @@ DEN_TO_AMUCC = (MSUN_GRAM * MUNIT) / (PCCM * MP)
 
 
 def convert(input_file):
+    import numpy as np
+    import pynbody
+
     starlog_file = input_file[:input_file.rfind('.')] + '.starlog'
     simulation = pynbody.load(input_file)
     simulation.physical_units()  # What does this call do exactly --SNC
@@ -74,11 +75,6 @@ def convert(input_file):
     print("there are this many stars: ", len(stars))
 
 
-# Includes relative hcom position, tform, mass, rho, temp
-def main():
+if __name__ == '__main__':
     input_file = sys.argv[1]
     convert(input_file)
-
-
-if __name__ == '__main__':
-    main()
