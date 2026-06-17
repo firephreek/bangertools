@@ -1,13 +1,16 @@
+import glob
 import os
 from collections import Counter
 from typing import Annotated
-from convert import convert
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pynbody as pn
 from pandas import Series, read_csv, DataFrame
+from rich import print
 from typer import Argument, Typer
+
+from convert import convert
 
 # setup typer. This gives us a nice cli framework to call commands with
 app = Typer()
@@ -33,9 +36,12 @@ def load_snapshot(file_path: str, convert_units: bool = True):
     return snapshot
 
 
-def load_AHF(csv_file: str):
-    AHF = read_csv(csv_file, sep='\t', header=0)
+def load_AHF(ahf_filepath: str):
+    if not os.path.exists(ahf_filepath):
+        raise FileNotFoundError(f"File '{ahf_filepath}' does not exist")
+    AHF = read_csv(ahf_filepath, sep='\t', header=0)
     return AHF
+
 
 # This is a decorator that turns the function into a cli command (https://typer.tiangolo.com/tutorial/commands/arguments/)
 # The Annotation is a type hint that typer can use to automatically populate the help menu.
@@ -112,12 +118,15 @@ def BH_count(snapshot_path: SnapshotPath):
 
 
 @app.command("halos")
-def BH_halos(snapshot_path: SnapshotPath, ahf_path: AHFPath):
+def BH_halos(snapshot_path: SnapshotPath, ahf_path: AHFPath = None):
     """
     Print which halos contain BHs and their masses
+    If the ahf_path is not provided, it will try to find one using a `snapshot_path.*.AHF_halos` glob pattern
     """
 
     snapshot = load_snapshot(snapshot_path)
+    if ahf_path is None:
+        ahf_path = glob.glob(f'{snapshot_path}.*.AHF_halos')[0]  # we're just grabbing the first match here
     AHF = load_AHF(ahf_path)
     bhs = snapshot.star[snapshot.star['tform'] < 0]
     bh_grp = bhs['amiga.grp']  # halo ID each BH belongs to
@@ -351,9 +360,11 @@ def fix_zeros(snapshot_path: SnapshotPath):
         f.write(content)
     print(f"Updated startrun: {startrun_path}")
 
+
 @app.command(name="convert")
 def convert_snapshot(snapshot_path: SnapshotPath):
     convert(snapshot_path)
+
 
 if __name__ == '__main__':
     app()
