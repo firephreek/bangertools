@@ -1,6 +1,7 @@
 import os
 from collections import Counter
 from typing import Annotated
+from convert import convert
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -350,6 +351,9 @@ def fix_zeros(snapshot_path: SnapshotPath):
         f.write(content)
     print(f"Updated startrun: {startrun_path}")
 
+@app.command(name="convert")
+def convert_snapshot(snapshot_path: SnapshotPath):
+    convert(snapshot_path)
 
 if __name__ == '__main__':
     app()
