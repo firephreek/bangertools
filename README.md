@@ -16,4 +16,5 @@ This is a collection of tools, utilities, and scripts that have been developed u
 ## Usage
 
 - `source .venv/bin/activate`
-- `python3 main.py --help`
+- `banger --help`
+  - The first run will take a few minutes while packages are loading.
