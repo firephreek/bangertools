@@ -1,6 +1,8 @@
 # Overview
 
-This is a collection of tools, utilities, and scripts that have been developed under the guidance of Jillian Belovary at the American Museum of Natural History to aid in the research and analysis of cosmological phenomena with a special focus on black holes.
+This is a collection of tools, utilities, and scripts that have been developed under the guidance of Jillian Bellovary
+at the American Museum of Natural History to aid in the research and analysis of cosmological phenomena with a special
+focus on black holes.
 
 ## Pre-reqs
 
@@ -17,4 +19,4 @@ This is a collection of tools, utilities, and scripts that have been developed u
 
 - `source .venv/bin/activate`
 - `banger --help`
-  - The first run will take a few minutes while packages are loading.
+    - The first run will take a few minutes while packages are loading.
