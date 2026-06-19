@@ -127,5 +127,17 @@ def convert_snapshot(snapshot_path: SnapshotPath):
     convert.convert(snapshot_path)
 
 
+@app.command(name="info")
+def info_command(file_path: FilePath):
+    import pynbody
+    import time
+
+    t0 = time.time()
+    s = pynbody.load(file_path)
+
+    print("Load time:", time.time() - t0)
+    print("Particles:", len(s))
+
+
 if __name__ == '__main__':
     app()
