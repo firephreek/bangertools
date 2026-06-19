@@ -12,7 +12,6 @@ dependencies = [
     "scipy-stubs~=1.17.1",
     "typer>=0.25.1",
     "vispy>=0.16.2",
-    "vizpy>=2.4.0",
 ]
 
 [tool.uv.build-backend]
