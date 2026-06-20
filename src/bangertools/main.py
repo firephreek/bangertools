@@ -2,16 +2,14 @@ from typing import Annotated
 
 from typer import Argument, Typer
 
-from bangertools import utilities, convert
+from bangertools import utilities, convert, viz, FilePath, SnapshotPath
 
 # setup typer. This gives us a nice cli framework to call commands with
 app = Typer()
+app.add_typer(viz.app, name="view")
+
 
 # helper types for the cli
-
-FilePath = Annotated[str, Argument(help="Path to the file")]
-SnapshotPath = Annotated[str, Argument(help="The path to the snapshot file")]
-AHFPath = Annotated[str, Argument(help="The path to the snapshot halo file")]
 
 
 # This is a decorator that turns the function into a cli command (https://typer.tiangolo.com/tutorial/commands/arguments/)
@@ -34,7 +32,7 @@ def dm_minmax(snapshot_path: SnapshotPath):
 
 
 @app.command(name="info")
-def AHF_halo_info(ahf_path: AHFPath):
+def AHF_halo_info(ahf_path: FilePath):
     """
     Print total number of halos in AHF
     """
@@ -42,7 +40,7 @@ def AHF_halo_info(ahf_path: AHFPath):
 
 
 @app.command(name="mass")
-def AHF_halo_mass(ahf_path: AHFPath):
+def AHF_halo_mass(ahf_path: FilePath):
     """
     Print halo masses and most/least massive halo
     """
@@ -58,7 +56,7 @@ def BH_count(snapshot_path: SnapshotPath):
 
 
 @app.command(name="halos")
-def BH_halos(snapshot_path: SnapshotPath, ahf_path: AHFPath = None):
+def BH_halos(snapshot_path: SnapshotPath, ahf_path: FilePath = None):
     """
     Print which halos contain BHs and their masses
     If the ahf_path is not provided, it will try to find one using a `snapshot_path.*.AHF_halos` glob pattern
@@ -75,7 +73,7 @@ def mass_range(file_path="halo_masses.csv"):
 
 
 @app.command(name="write-csv")
-def write_csvs(snapshot_path: SnapshotPath, ahf_path: AHFPath = None):
+def write_csvs(snapshot_path: SnapshotPath, ahf_path: FilePath = None):
     """
     Write halo_masses.csv and BH_masses.csv to be used for the occupation fraction plot
     """
@@ -99,7 +97,7 @@ def conv_vkick(value: Annotated[float, Argument(help="The floating point value o
 
 
 @app.command(name="fMhires")
-def check_fMhires(ahf_path: AHFPath):
+def check_fMhires(ahf_path: FilePath):
     """
     Prints fMhires values for the first few halos to verify their values
     """
@@ -125,6 +123,12 @@ def fix_zeros(snapshot_path: SnapshotPath):
 @app.command(name="convert")
 def convert_snapshot(snapshot_path: SnapshotPath):
     convert.convert(snapshot_path)
+
+
+@app.command(name="buildcore")
+def build_snap_short_core(file_path: FilePath, prefix: str = "o9M_1.*"):
+    from bangertools.lib.core import build_core
+    build_core(file_path, prefix)
 
 
 @app.command(name="info")

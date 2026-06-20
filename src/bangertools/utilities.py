@@ -6,6 +6,8 @@ from typing import Annotated
 from rich import print
 from typer import Argument, Typer
 
+from bangertools import FilePath
+
 # setup typer. This gives us a nice cli framework to call commands with
 app = Typer()
 
@@ -18,16 +20,13 @@ KPC_CGS = 3.086e21
 M_UNIT = 1.84793e16
 R_UNIT = 50000.0
 
-# helper types for the cli
-SnapshotPath = Annotated[str, Argument(help="The path to the snapshot file")]
-AHFPath = Annotated[str, Argument(help="The path to the snapshot file")]
-
 
 def load_AHF(file_path: str):
     from pandas import read_csv
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"File '{file_path}' does not exist")
     return read_csv(file_path, sep='\t', header=0)
+
 
 def load_snapshot(file_path: str, convert_units: bool = True):
     import pynbody as pn
@@ -51,7 +50,7 @@ def snap_keys(file_path: Annotated[str, Argument(help="Path to the file")]):
         print(f"Unrecognized file {file_path}")
 
 
-def dm_minmax(snapshot_path: SnapshotPath):
+def dm_minmax(snapshot_path: FilePath):
     """
     Print min/max DM particle mass and their ratio
     """
@@ -62,7 +61,7 @@ def dm_minmax(snapshot_path: SnapshotPath):
     print(f" ratio: {snapshot.dm['mass'].max() / snapshot.dm['mass'].min(): .3e}")
 
 
-def AHF_halo_info(ahf_path: AHFPath):
+def AHF_halo_info(ahf_path: FilePath):
     """
     Print total number of halos in AHF
     """
@@ -71,7 +70,7 @@ def AHF_halo_info(ahf_path: AHFPath):
     print(f"total number of halos: {len(AHF)}")
 
 
-def AHF_halo_mass(ahf_path: AHFPath):
+def AHF_halo_mass(ahf_path: FilePath):
     """
     Print halo masses and most/least massive halo
     """
@@ -93,7 +92,7 @@ def AHF_halo_mass(ahf_path: AHFPath):
     print(f"least massive: halo {ids[masses.idxmin()]} with {masses.min():.3e} M_sun")
 
 
-def BH_count(snapshot_path: SnapshotPath):
+def BH_count(snapshot_path: FilePath):
     """
     Counts BHs in the snapshot
     """
@@ -103,7 +102,7 @@ def BH_count(snapshot_path: SnapshotPath):
     print(f'total number of BHs: {len(bhs)}')
 
 
-def BH_halos(snapshot_path: SnapshotPath, ahf_path: AHFPath = None):
+def BH_halos(snapshot_path: FilePath, ahf_path: FilePath = None):
     """
     Print which halos contain BHs and their masses
     If the ahf_path is not provided, it will try to find one using a `snapshot_path.*.AHF_halos` glob pattern
@@ -138,7 +137,7 @@ def mass_range(file_path="halo_masses.csv"):
     print(f"max mass: {masses.max():.3e} M_sun")
 
 
-def write_csvs(snapshot_path: SnapshotPath, ahf_path: AHFPath):
+def write_csvs(snapshot_path: FilePath, ahf_path: FilePath):
     """
     Write halo_masses.csv and BH_masses.csv to be used for the occupation fraction plot
     """
@@ -261,7 +260,7 @@ def conv_vkick(value: Annotated[float, Argument(help="The floating point value o
     print(f"{value} code units = {value * dKmPerSecUnit:.4f} km/s")
 
 
-def check_fMhires(ahf_path: AHFPath):
+def check_fMhires(ahf_path: FilePath):
     """
     Prints fMhires values for the first few halos to verify their values
     """
@@ -269,7 +268,7 @@ def check_fMhires(ahf_path: AHFPath):
     print(AHF[['#ID(1)', 'Mhalo(4)', 'fMhires(38)']].head(10).to_string())
 
 
-def check_snapshot_zeros(snapshot_path: SnapshotPath):
+def check_snapshot_zeros(snapshot_path: FilePath):
     """
     Check for zero mass particles in the snapshot
     """
@@ -307,7 +306,7 @@ def check_snapshot_zeros(snapshot_path: SnapshotPath):
         print("  OK: No NaN mass particles found.")
 
 
-def fix_zeros(snapshot_path: SnapshotPath):
+def fix_zeros(snapshot_path: FilePath):
     import pynbody as pn
     """
     Create a clean snapshot without zero mass particles and update startruns.txt to use it
