@@ -1,791 +1,163 @@
-global frame
+import time
 
+import numpy as np
+import pynbody
+from matplotlib import cm
+from vispy import app
+from vispy.color import Color
+from vispy.scene import visuals, SceneCanvas
 
-def collapse_viewer(dir_path: str):
-    """
-    collapse_viewer.py
 
-    GPU viewer for collapse_trajectories.npz
+def color_from_temperature(temp):
+    # TODO: Consider memoizing this?
+    temp = np.nan_to_num(temp)
+    logt = np.log10(np.clip(temp, 1.0, None))
+    tmin = np.percentile(logt, 5)
+    tmax = np.percentile(logt, 95)
 
-    Controls:
-        Space     = play/pause
-        Left/Right= step frame
-        R         = reset camera
-        T         = toggle trails
-        Esc       = quit
+    x = np.clip((logt - tmin) / (tmax - tmin + 1e-12), 0, 1)
 
-    Mouse:
-        Left drag = rotate
-        Wheel     = zoom
-    """
+    return cm.plasma(x).astype(np.float32)
 
-    import numpy as np
-    from vispy import app, scene
-    from vispy.scene import visuals
 
-    # --------------------------------------------------
-    # Load trajectory data
-    # --------------------------------------------------
+class Player:
+    frames = []
+    cur_frame = 0
 
-    data = np.load(dir_path)
+    def start(self):
+        self.playing = True
 
-    particle_ids = data["particle_ids"]
-    traj = data["trajectories"]
+    def close(self):
+        self.canvas.close()
 
-    n_particles, n_frames, _ = traj.shape
-
-    print(f"Particles : {n_particles}")
-    print(f"Frames    : {n_frames}")
-
-    # --------------------------------------------------
-    # Viewer state
-    # --------------------------------------------------
-
-    global frame
-    frame = 0
-    playing = True
-    show_trails = True
-
-    # --------------------------------------------------
-    # Canvas
-    # --------------------------------------------------
-
-    canvas = scene.SceneCanvas(
-        keys="interactive",
-        bgcolor="black",
-        size=(1600, 900),
-        show=True,
-    )
-
-    view = canvas.central_widget.add_view()
-    view.camera = "turntable"
-    view.camera.fov = 45
-
-    # --------------------------------------------------
-    # Initial positions
-    # --------------------------------------------------
-
-    current = traj[:, 0, :]
-
-    scatter = visuals.Markers(
-        parent=view.scene
-    )
-
-    scatter.set_data(
-        current,
-        face_color=(0.2, 0.7, 1.0, 0.8),
-        size=4,
-    )
-
-    # --------------------------------------------------
-    # Trails
-    # --------------------------------------------------
-
-    trail_lines = []
-
-    if show_trails:
-        print("Loading Trails...")
-        for i in range(min(n_particles, 2000)):
-            line = visuals.Line(
-                pos=traj[i, :1, :],
-                color=(1, 1, 1, 0.15),
-                width=1,
-                parent=view.scene,
-            )
-
-            trail_lines.append(line)
-
-    # --------------------------------------------------
-    # Camera setup
-    # --------------------------------------------------
-
-    all_pos = traj.reshape(-1, 3)
-
-    valid = np.isfinite(all_pos[:, 0])
-
-    center = np.nanmean(all_pos[valid], axis=0)
-
-    extent = np.nanmax(
-        np.linalg.norm(
-            all_pos[valid] - center,
-            axis=1
-        )
-    )
-
-    view.camera.center = center
-    view.camera.distance = extent * 3
-
-    # --------------------------------------------------
-    # Update frame
-    # --------------------------------------------------
-
-    def update(event):
-
-        global frame
-
-        if not playing:
-            return
-
-        frame += 1
-
-        if frame >= n_frames:
-            frame = 0
-
-        pos = traj[:, frame, :]
-
-        scatter.set_data(
-            pos,
-            face_color=(0.2, 0.7, 1.0, 0.8),
-            size=4,
-        )
-
-        if show_trails:
-
-            max_trails = min(len(trail_lines), n_particles)
-
-            for i in range(max_trails):
-                trail_lines[i].set_data(
-                    traj[i, : frame + 1, :]
-                )
-
-    # --------------------------------------------------
-    # Keyboard
-    # --------------------------------------------------
-
-    @canvas.events.key_press.connect
-    def on_key(event):
-
-        global playing
-        global frame
-
-        if event.key == "Space":
-            playing = not playing
-
-        elif event.key == "Right":
-
-            frame = min(frame + 1, n_frames - 1)
-
-            scatter.set_data(
-                traj[:, frame, :],
-                face_color=(0.2, 0.7, 1.0, 0.8),
-                size=4,
-            )
-
-        elif event.key == "Left":
-
-            frame = max(frame - 1, 0)
-
-            scatter.set_data(
-                traj[:, frame, :],
-                face_color=(0.2, 0.7, 1.0, 0.8),
-                size=4,
-            )
-
-        elif event.key == "R":
-
-            view.camera.center = center
-            view.camera.distance = extent * 3
-
-        elif event.key == "Escape":
-
-            canvas.close()
-
-    # --------------------------------------------------
-    # Timer
-    # --------------------------------------------------
-
-    timer = app.Timer(
-        interval=1 / 30,
-        connect=update,
-        start=True,
-    )
-
-    app.run()
-
-
-def build_core(file_path: str, snapshot_prefix="o9M_1.*"):
-    import re
-    from pathlib import Path
-    import numpy as np
-    import pynbody
-
-    # =====================================================
-    # CONFIG
-    # =====================================================
-
-    FINAL_CORE_PARTICLES = 1000
-    SNAP_PATTERN = r"o9M_1\.\d+"
-
-    # =====================================================
-    # FIND SNAPSHOTS
-    # =====================================================
-
-    snapshots = sorted(
-        str(f)
-        for f in Path(file_path).glob(snapshot_prefix)
-        if re.fullmatch(SNAP_PATTERN, f.name)
-    )
-
-    if not snapshots:
-        raise RuntimeError("No snapshots found")
-
-    print(f"Found {len(snapshots)} snapshots")
-
-    # =====================================================
-    # FINAL SNAPSHOT
-    # =====================================================
-
-    final_snap = snapshots[-1]
-
-    print(f"Loading final snapshot: {final_snap}")
-
-    s = pynbody.load(final_snap)
-
-    pos = np.asarray(s["pos"])
-    phi = np.asarray(s["phi"])
-    iord = np.asarray(s["iord"])
-
-    # deepest potential particle
-    core_idx = np.argmin(phi)
-
-    core_center = pos[core_idx]
-
-    print("Core center particle:")
-    print(f"  ID  = {iord[core_idx]}")
-    print(f"  phi = {phi[core_idx]}")
-
-    # distance from core center
-    r = np.linalg.norm(pos - core_center, axis=1)
-
-    # nearest N particles
-    nearest = np.argsort(r)[:FINAL_CORE_PARTICLES]
-
-    core_ids = iord[nearest]
-
-    print()
-    print(f"Selected {len(core_ids)} final-core particles")
-
-    np.save("core_particle_ids.npy", core_ids)
-
-    # =====================================================
-    # BUILD TRAJECTORIES
-    # =====================================================
-
-    core_set = set(map(int, core_ids))
-
-    traj = []
-
-    for snap_index, snapfile in enumerate(snapshots):
-
-        print(
-            f"[{snap_index + 1}/{len(snapshots)}] "
-            f"{Path(snapfile).name}"
-        )
-
-        s = pynbody.load(snapfile)
-
-        ids = np.asarray(s["iord"])
-        pos = np.asarray(s["pos"])
-
-        # map particle ID -> index for only core particles
-        id_to_idx = {
-            int(pid): idx
-            for idx, pid in enumerate(ids)
-            if int(pid) in core_set
-        }
-
-        frame_positions = np.full(
-            (len(core_ids), 3),
-            np.nan,
-            dtype=np.float32,
-        )
-
-        for j, pid in enumerate(core_ids):
-
-            idx = id_to_idx.get(int(pid))
-
-            if idx is not None:
-                frame_positions[j] = pos[idx]
-
-        traj.append(frame_positions)
-
-    traj = np.stack(traj, axis=1)
-
-    print()
-    print("Trajectory array shape:", traj.shape)
-    print("(particles, snapshots, xyz)")
-
-    # =====================================================
-    # SAVE
-    # =====================================================
-
-    np.savez_compressed(
-        "core_trajectories.npz",
-        particle_ids=core_ids,
-        trajectories=traj,
-        snapshots=np.array(snapshots),
-    )
-
-    print()
-    print("Saved:")
-    print("  core_particle_ids.npy")
-    print("  core_trajectories.npz")
-
-
-def view_core(core_file):
-    import numpy as np
-    from vispy import app, scene
-    from vispy.scene import visuals
-
-    # =====================================================
-    # LOAD TRAJECTORIES
-    # =====================================================
-
-    data = np.load(core_file)
-
-    traj = data["trajectories"]
-
-    n_particles, n_frames, _ = traj.shape
-
-    print("Particles:", n_particles)
-    print("Frames:", n_frames)
-
-    # =====================================================
-    # VISPY
-    # =====================================================
-
-    canvas = scene.SceneCanvas(
-        keys="interactive",
-        bgcolor="black",
-        size=(1800, 1000),
-        show=True,
-    )
-
-    view = canvas.central_widget.add_view()
-    view.camera = "turntable"
-
-    # =====================================================
-    # STATE
-    # =====================================================
-
-    frame = 0
-    playing = False
-
-    # =====================================================
-    # PARTICLES
-    # =====================================================
-
-    scatter = visuals.Markers()
-    view.add(scatter)
-
-    # =====================================================
-    # TRAILS
-    # =====================================================
-
-    trail_visual = visuals.Line()
-    view.add(trail_visual)
-
-    # =====================================================
-    # COLORS
-    # =====================================================
-
-    colors = np.zeros((n_particles, 4), dtype=np.float32)
-
-    colors[:, 0] = 1.0
-    colors[:, 1] = 0.85
-    colors[:, 2] = 0.1
-    colors[:, 3] = 0.9
-
-    # =====================================================
-    # CAMERA INIT
-    # =====================================================
-
-    all_pos = traj.reshape(-1, 3)
-
-    mask = np.isfinite(all_pos[:, 0])
-
-    center = np.nanmean(all_pos[mask], axis=0)
-
-    extent = np.nanmax(
-        np.linalg.norm(all_pos[mask] - center, axis=1)
-    )
-
-    view.camera.center = center
-    view.camera.distance = extent * 2.5
-
-    # =====================================================
-    # RENDER
-    # =====================================================
-
-    def render(f):
-
-        pos = traj[:, f, :]
-
-        valid = np.isfinite(pos[:, 0])
-
-        scatter.set_data(
-            pos[valid],
-            face_color=colors[valid],
-            size=6
-        )
-
-        # -----------------------------------------
-        # Build trail segments
-        # -----------------------------------------
-
-        trail_points = []
-
-        trail_start = max(0, f - 20)
-
-        for p in range(n_particles):
-
-            segment = traj[p, trail_start:f + 1]
-
-            good = np.isfinite(segment[:, 0])
-
-            segment = segment[good]
-
-            if len(segment) > 1:
-                trail_points.append(segment)
-
-        if trail_points:
-            trail_visual.set_data(
-                pos=np.concatenate(trail_points),
-                color=(1, 1, 1, 0.15),
-                width=1
-            )
-
-        canvas.title = (
-            f"Core Ancestry Viewer "
-            f"| Frame {f + 1}/{n_frames}"
-        )
-
-    # =====================================================
-    # FRAME CONTROL
-    # =====================================================
-
-    def set_frame(f):
-
-        global frame
-
-        frame = max(
-            0,
-            min(n_frames - 1, f)
-        )
-
-        render(frame)
-
-        canvas.update()
-
-    # =====================================================
-    # INITIAL DRAW
-    # =====================================================
-
-    set_frame(0)
-
-    # =====================================================
-    # PLAYBACK
-    # =====================================================
-
-    def advance(event):
-
-        if not playing:
-            return
-
-        set_frame(frame + 1)
-
-    # =====================================================
-    # SCROLL SCRUB
-    # =====================================================
-
-    @canvas.events.mouse_wheel.connect
-    def on_scroll(event):
-
-        delta = int(event.delta[1])
-
-        set_frame(frame + delta)
-
-    # =====================================================
-    # KEYS
-    # =====================================================
-
-    @canvas.events.key_press.connect
-    def on_key(event):
-
-        global playing
-
-        if event.key == "Space":
-            playing = not playing
-
-        elif event.key == "Right":
-            set_frame(frame + 1)
-
-        elif event.key == "Left":
-            set_frame(frame - 1)
-
-        elif event.key == "Home":
-            set_frame(0)
-
-        elif event.key == "End":
-            set_frame(n_frames - 1)
-
-        elif event.key == "Escape":
-            canvas.close()
-
-    # =====================================================
-    # TIMER
-    # =====================================================
-
-    timer = app.Timer(
-        interval=1 / 20,
-        connect=advance,
-        start=True
-    )
-
-    app.run()
-
-
-def render2(dir_path: str):
-    import re
-    from pathlib import Path
-
-    import numpy as np
-    import pynbody
-
-    from vispy import app
-    from vispy.scene import visuals
-    app.use_app('PyQt6')
-    from vispy import scene
-    # =====================================================
-    # CONFIG
-    # =====================================================
-
-    SNAP_PREFIX = "o9M_1."
-    POINT_SIZE = 3
-    FPS = 20
-
-    # downsample if desired
-    MAX_POINTS = 200000
-
-    # =====================================================
-    # FIND SNAPSHOTS
-    # =====================================================
-
-    snapshots = []
-
-    for f in Path(dir_path).glob(f"{SNAP_PREFIX}*"):
-        if re.fullmatch(r"o9M_1\.\d+", f.name):
-            snapshots.append(str(f))
-
-    snapshots.sort()
-
-    if not snapshots:
-        raise RuntimeError("No snapshots found")
-
-    print("Found", len(snapshots), "snapshots")
-
-    # =====================================================
-    # LOAD SNAPSHOT
-    # =====================================================
-
-    cache = {}
-
-    def load_frame(i):
-        if i in cache:
-            return cache[i]
-
-        s = pynbody.load(snapshots[i])
+    def __process_frame(self, file_path):  # TODO: Could this be threaded?
+        # TODO: Print status/state while frames are being loaded
+        # TODO: Cache/serialize and save to avoid reprocessing?
+        start_time = time.time()
+        print(f"Loading {file_path}")
+        s = pynbody.load(file_path)
+        print(f"Loaded {file_path} in {time.time() - start_time}")
 
         pos = np.asarray(s["pos"], dtype=np.float32)
 
-        if len(pos) > MAX_POINTS:
-            idx = np.random.choice(
-                len(pos),
-                MAX_POINTS,
-                replace=False
-            )
+        if len(pos) > self.MAX_POINTS:
+            idx = np.random.choice(len(pos), self.MAX_POINTS, replace=False)
 
             pos = pos[idx]
 
-            temp = np.asarray(
-                s["tempEff"],
-                dtype=np.float32
-            )[idx]
-
-            phi = np.asarray(
-                s["phi"],
-                dtype=np.float32
-            )[idx]
-
+            temp = np.asarray(s["tempEff"], dtype=np.float32)[idx]
+            phi = np.asarray(s["phi"], dtype=np.float32)[idx]
         else:
-            temp = np.asarray(
-                s["tempEff"],
-                dtype=np.float32
-            )
-            phi = np.asarray(
-                s["phi"],
-                dtype=np.float32
-            )
+            temp = np.asarray(s["tempEff"], dtype=np.float32)
+            phi = np.asarray(s["phi"], dtype=np.float32)
 
         center_idx = np.argmin(phi)
         center = pos[center_idx]
         pos = pos - center
 
-        cache[i] = (
-            pos,
-            temp,
-            center
-        )
+        frame = (pos, temp, center)
 
-        return cache[i]
+        return frame
 
-    # =====================================================
-    # COLORMAP
-    # =====================================================
+    def __cache_frames(self, file_paths: list[str]):
+        # TODO: Let's create a pickle file with prefixes and keys, and then we only add frames we need to the
+        #  rest we load from the pickle?
+        frame_cache = []
+        snapshot_paths = []
 
-    from matplotlib import cm
+        for f in file_paths:
+            snapshot_paths.append(str(f))
 
-    def color_from_temperature(temp):
-        temp = np.nan_to_num(temp)
-        logt = np.log10(np.clip(temp, 1.0, None))
-        tmin = np.percentile(logt, 5)
-        tmax = np.percentile(logt, 95)
+        snapshot_paths.sort()
 
-        x = np.clip((logt - tmin) / (tmax - tmin + 1e-12), 0, 1)
+        for idx, snapshot in enumerate(snapshot_paths):
+            frame_cache.append(self.__process_frame(snapshot))
 
-        return cm.plasma(x).astype(np.float32)
+        return frame_cache
 
-    # =====================================================
-    # CANVAS
-    # =====================================================
+    def __redraw(self):
+        pos, temp, center = self.frames[self.cur_frame]
+        color = color_from_temperature(temp)
+        self.scatter.set_data(pos, face_color=color, size=self.POINT_SIZE)
 
-    canvas = scene.SceneCanvas(
-        keys="interactive",
-        bgcolor="black",
-        size=(1800, 1000),
-        show=True,
-    )
-
-    view = canvas.central_widget.add_view()
-
-    view.camera = "turntable"
-
-    # =====================================================
-    # INITIAL FRAME
-    # =====================================================
-
-    frame = 0
-    playing = True
-
-    pos, temp, center = load_frame(frame)
-
-    colors = color_from_temperature(temp)
-
-    scatter = visuals.Markers(
-        parent=view.scene
-    )
-
-    scatter.set_data(
-        pos,
-        face_color=colors,
-        size=POINT_SIZE
-    )
-
-    extent = np.max(
-        np.linalg.norm(pos, axis=1)
-    )
-
-    view.camera.distance = extent * 2
-
-    # =====================================================
-    # UPDATE
-    # =====================================================
-
-    def redraw():
-        pos, temp, center = load_frame(frame)
-
-        scatter.set_data(
-            pos,
-            face_color=color_from_temperature(temp),
-            size=POINT_SIZE
-        )
-
-    def advance(event):
-        global frame
-
-        if not playing:
+    def advance(self, event):
+        if not self.playing:
             return
 
-        frame += 1
+        self.cur_frame += 1
 
-        if frame >= len(snapshots):
-            frame = 0
+        if self.AUTO_LOOP and self.cur_frame >= len(self.frames):
+            self.cur_frame = 0
 
-        redraw()
+        self.__redraw()
 
-    # =====================================================
-    # KEYS
-    # =====================================================
-
-    @canvas.events.key_press.connect
-    def on_key(event):
-        global frame
-        global playing
-
+    def on_key_press(self, event):
         if event.key == "Space":
-            playing = not playing
-
+            self.playing = not self.playing
         elif event.key == "Right":
-
-            frame = min(
-                frame + 1,
-                len(snapshots) - 1
-            )
-
-            redraw()
-
+            self.cur_frame = min(self.cur_frame + 1, len(self.frames) - 1)
+            self.__redraw()
         elif event.key == "Left":
-
-            frame = max(
-                frame - 1,
-                0
-            )
-
-            redraw()
-
+            self.cur_frame = max(self.cur_frame - 1, 0)
+            self.__redraw()
         elif event.key == "Home":
-
-            frame = 0
-            redraw()
-
+            self.cur_frame = 0
+            self.__redraw()
         elif event.key == "End":
-
-            frame = len(snapshots) - 1
-            redraw()
-
+            self.cur_frame = len(self.frames) - 1
+            self.__redraw()
         elif event.key == "Escape":
+            self.close()
 
-            canvas.close()
+    def __init__(self, file_paths: list[str],
+                 auto_start=False,
+                 point_size=3,
+                 size=(1800, 1000)
+                 ):
+        self.AUTO_LOOP = True
+        self.playing = None
+        self.FPS = 20
+        self.MAX_POINTS = 200_000
+        self.POINT_SIZE = point_size
+        self.frames = self.__cache_frames(file_paths)  # TODO: how to determine the prefix automatically?
+        self.cur_frame = 0
 
-    # =====================================================
-    # TIMER
-    # =====================================================
+        self.canvas = SceneCanvas(
+            keys="interactive",
+            bgcolor=Color('black'),
+            size=size,
+            show=True,
+        )
 
-    timer = app.Timer(
-        interval=1.0 / FPS,
-        connect=advance,
-        start=True,
-    )
+        self.view = self.canvas.central_widget.add_view()
+        self.view.camera = "turntable"
+        pos, temp, center = self.frames[0]
+        colors = color_from_temperature(temp)
+        self.scatter = visuals.Markers(parent=self.view.scene)
+        self.scatter.set_data(pos, face_color=colors, size=self.POINT_SIZE)
 
-    print()
-    print("Controls")
-    print("--------")
-    print("Space  : Play/Pause")
-    print("← →    : Frame step")
-    print("Home   : First frame")
-    print("End    : Last frame")
-    print("Mouse  : Rotate")
-    print("Wheel  : Zoom")
-    print()
+        extent = np.max(np.linalg.norm(pos, axis=1))
+        self.view.camera.distance = extent.real * 2.0
 
-    app.run()
+        self.canvas.connect(self.on_key_press)
+        self.timer = app.Timer(
+            interval=1.0 / self.FPS,
+            connect=self.advance,
+            start=True,
+        )
+
+        self.print_controls()
+        app.run()
+
+    @staticmethod
+    def print_controls():
+        print()
+        print("Controls")
+        print("--------")
+        print("Space  : Play/Pause")
+        print("← →    : Frame step")
+        print("Home   : First frame")
+        print("End    : Last frame")
+        print("Mouse  : Rotate")
+        print("Wheel  : Zoom")
+        print()
