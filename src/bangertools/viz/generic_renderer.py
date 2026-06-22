@@ -1,8 +1,4 @@
-import re
-from pathlib import Path
-
 import numpy as np
-import pynbody
 
 from .common import color_from_temperature, Renderer
 
@@ -12,12 +8,6 @@ class GenericRenderer(Renderer):
     MAX_POINTS = 200_000
     MAX_FRAMES = None
 
-    def __init__(self, dir_path, rebuild_cache=False):
-        super().__init__(dir_path, "generic", rebuild_cache=rebuild_cache)
-
-        extent = np.max(np.linalg.norm(self.frames[0]['pos'], axis=1))
-        self.distance = extent.real * 2.0
-
     def render_frame(self, frame_number, scatter):
         frame = self.frames[frame_number]
         pos_ = frame['pos']
@@ -25,37 +15,20 @@ class GenericRenderer(Renderer):
 
         scatter.set_data(pos_, face_color=color_, size=self.POINT_SIZE)
 
-    def load_frames(self, dir_path):
-        frames = []
-        snapshot_paths = [
-            p.name for p in Path(dir_path).glob(f"*")
-            if re.fullmatch(r".*\.\d{6}", p.name)
-        ]
+    def snapshot_to_frame(self, snapshot):
+        pos = np.asarray(snapshot["pos"], dtype=np.float32)
+        phi = np.asarray(snapshot["phi"], dtype=np.float32)
+        center = pos[np.argmin(phi)]
+        pos = pos - center
 
-        snapshot_paths.sort()
+        temp = np.asarray(snapshot["tempEff"], dtype=np.float32)
+        color = color_from_temperature(temp)
 
-        for idx, file_path in enumerate(snapshot_paths):
-            print(f"Loading {file_path}")
-            if self.MAX_FRAMES and idx >= self.MAX_FRAMES:
-                break
+        frame = {
+            "pos": pos,
+            "temp": temp,
+            "center": center,
+            "color": color
+        }
 
-            snapshot = pynbody.load(file_path)
-
-            pos = np.asarray(snapshot["pos"], dtype=np.float32)
-            phi = np.asarray(snapshot["phi"], dtype=np.float32)
-            center = pos[np.argmin(phi)]
-            pos = pos - center
-
-            temp = np.asarray(snapshot["tempEff"], dtype=np.float32)
-            color = color_from_temperature(temp)
-
-            frame = {
-                "pos": pos,
-                "temp": temp,
-                "center": center,
-                "color": color
-            }
-
-            frames.append(frame)
-
-        return frames
+        return frame
