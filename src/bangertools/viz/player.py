@@ -44,6 +44,8 @@ class Player:
         def on_key_press(event):
             if event.key == "Space":
                 self.playing = not self.playing
+            elif event.key in ["L", "l"]:
+                self.loop = not self.loop
             else:
                 if event.key == "Escape":
                     canvas.close()
@@ -78,6 +80,7 @@ class Player:
         print("← →    : Frame step")
         print("Home   : First frame")
         print("End    : Last frame")
+        print("L      : Loop On/Off")
         print("Mouse  : Rotate")
         print("Wheel  : Zoom")
         print()
