@@ -2,14 +2,12 @@ from typing import Annotated
 
 from typer import Argument, Typer
 
-from bangertools import utilities, convert, viz, FilePath, SnapshotPath
+from bangertools import utilities, convert, FilePath, SnapshotPath
+from viz.app import app as viz_app
 
 # setup typer. This gives us a nice cli framework to call commands with
 app = Typer()
-app.add_typer(viz.app, name="view")
-
-
-# helper types for the cli
+app.add_typer(viz_app, name="view")
 
 
 # This is a decorator that turns the function into a cli command (https://typer.tiangolo.com/tutorial/commands/arguments/)
