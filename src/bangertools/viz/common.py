@@ -1,8 +1,8 @@
-import pickle
 import re
 from pathlib import Path
 
 import numpy as np
+import pynbody
 from matplotlib import cm
 
 
@@ -14,14 +14,13 @@ class Renderer:
         cache_file_path = dir_path / f"{dir_path.name}.frames.{self.extension()}"
 
         try:
-            with open(cache_file_path, 'rb') as fp:
-                self.frames = pickle.load(fp)
+            data = np.load(cache_file_path)
+            self.frames = data['frames']
             if self.frames is None or len(self.frames) == 0 or rebuild_cache:
                 raise Exception()
         except Exception as _:
             self.frames = self.load_frames(dir_path)
-            with open(cache_file_path, 'wb') as fp:
-                pickle.dump(self.frames, fp)
+            np.savez_compressed(cache_file_path, frames=self.frames)
 
         extent = np.max(np.linalg.norm(self.frames[0]['pos'], axis=1))
         self.distance = extent.real * 2.0
