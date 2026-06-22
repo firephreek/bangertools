@@ -16,7 +16,7 @@ class GenericRenderer:
     def __init__(self, dir_path, force_cache=False):
 
         dir_path = Path(dir_path).resolve()
-        cache_file_path = dir_path / f"{dir_path.name}.temp_frames"
+        cache_file_path = dir_path / f"{dir_path.name}.generic.frames"
 
         try:
             with open(cache_file_path, 'rb') as fp:

@@ -1,3 +1,11 @@
+import typer
+
+import bangertools.lib.viewer as viewer
+from bangertools import FilePath
+from bangertools.renderers import GenericRenderer
+
+app = typer.Typer(help="Data visualization commands")
+
 
 # @app.command(name="build_npz")
 # def build_npz_command(
