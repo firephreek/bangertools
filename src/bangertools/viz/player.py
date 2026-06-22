@@ -40,6 +40,10 @@ class Player:
                 self.cur_frame += 1
             self.show_frame(self.cur_frame)
 
+        @canvas.events.mouse_wheel.connect
+        def on_scroll(event):
+            pass  # Make this change the view box
+
         @canvas.events.key_press.connect
         def on_key_press(event):
             if event.key == "Space":
