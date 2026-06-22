@@ -34,22 +34,20 @@ class Player:
         def advance():
             if not self.playing:
                 return
-
             if self.loop and self.cur_frame >= len(self.renderer.frames) - 1:
                 self.cur_frame = 0
             else:
                 self.cur_frame += 1
-
-            self.renderer.render_frame(self.cur_frame, self.scatter)
+            self.show_frame(self.cur_frame)
 
         @canvas.events.key_press.connect
         def on_key_press(event):
             if event.key == "Space":
                 self.playing = not self.playing
-            elif event.key == "Escape":
-                canvas.close()
             else:
-                if event.key == "Right":
+                if event.key == "Escape":
+                    canvas.close()
+                elif event.key == "Right":
                     self.cur_frame = min(self.cur_frame + 1, len(self.renderer.frames) - 1)
                 elif event.key == "Left":
                     self.cur_frame = max(self.cur_frame - 1, 0)
@@ -57,7 +55,7 @@ class Player:
                     self.cur_frame = 0
                 elif event.key == "End":
                     self.cur_frame = len(self.renderer.frames) - 1
-                advance()
+                self.show_frame(self.cur_frame)
 
         self.timer = app.Timer(
             interval=1.0 / self.fps,
@@ -83,3 +81,6 @@ class Player:
         print("Mouse  : Rotate")
         print("Wheel  : Zoom")
         print()
+
+    def show_frame(self, frame_number):
+        self.renderer.render_frame(frame_number, self.scatter)

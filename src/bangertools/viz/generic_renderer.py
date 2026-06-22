@@ -8,25 +8,31 @@ import pynbody
 from .common import color_from_temperature
 
 
-class GenericRenderer:
-    POINT_SIZE = 3
-    MAX_POINTS = 200_000
-    MAX_FRAMES = None
+class Renderer:
 
-    def __init__(self, dir_path, force_cache=False):
+    def __init__(self, dir_path, extension, rebuild_cache=False):
 
         dir_path = Path(dir_path).resolve()
-        cache_file_path = dir_path / f"{dir_path.name}.generic.frames"
+        cache_file_path = dir_path / f"{dir_path.name}.frames.{extension}"
 
         try:
             with open(cache_file_path, 'rb') as fp:
                 self.frames = pickle.load(fp)
-            if self.frames is None or len(self.frames) == 0 or force_cache:
+            if self.frames is None or len(self.frames) == 0 or rebuild_cache:
                 raise Exception()
         except Exception as _:
             self.frames = self.load_frames(dir_path)
             with open(cache_file_path, 'wb') as fp:
                 pickle.dump(self.frames, fp)
+
+
+class GenericRenderer(Renderer):
+    POINT_SIZE = 3
+    MAX_POINTS = 200_000
+    MAX_FRAMES = None
+
+    def __init__(self, dir_path, rebuild_cache=False):
+        super().__init__(dir_path, "generic", rebuild_cache=rebuild_cache)
 
         extent = np.max(np.linalg.norm(self.frames[0]['pos'], axis=1))
         self.distance = extent.real * 2.0
