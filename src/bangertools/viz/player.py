@@ -91,3 +91,128 @@ class Player:
 
     def show_frame(self, frame_number):
         self.renderer.render_frame(frame_number, self.scatter)
+
+from vispy import app
+from vispy.color import Color
+from vispy.scene import SceneCanvas, visuals
+
+
+class ImagePlayer:
+
+    def __init__(
+        self,
+        renderer,
+        fps=20,
+        loop=True,
+        size=(1200, 1200)
+    ):
+
+        canvas = SceneCanvas(
+            keys="interactive",
+            bgcolor=Color("black"),
+            size=size,
+            show=True,
+        )
+
+        view = canvas.central_widget.add_view()
+
+        self.fps = fps
+        self.loop = loop
+        self.playing = False
+        self.cur_frame = 0
+
+        self.renderer = renderer
+        self.frames = renderer.frames
+
+        first_frame = self.renderer.frames[0]
+
+        self.image = visuals.Image(
+            first_frame["image"],
+            parent=view.scene,
+            cmap="grays"
+        )
+
+        view.camera = "panzoom"
+        view.camera.aspect = 1
+
+        def advance():
+            if not self.playing:
+                return
+
+            if self.cur_frame >= len(self.frames) - 1:
+                if self.loop:
+                    self.cur_frame = 0
+                else:
+                    self.playing = False
+                    return
+            else:
+                self.cur_frame += 1
+
+            self.show_frame(self.cur_frame)
+
+        @canvas.events.key_press.connect
+        def on_key_press(event):
+
+            if event.key == "Space":
+                self.playing = not self.playing
+
+            elif event.key in ["L", "l"]:
+                self.loop = not self.loop
+
+            elif event.key == "Right":
+                self.cur_frame = min(
+                    self.cur_frame + 1,
+                    len(self.frames) - 1
+                )
+                self.show_frame(self.cur_frame)
+
+            elif event.key == "Left":
+                self.cur_frame = max(
+                    self.cur_frame - 1,
+                    0
+                )
+                self.show_frame(self.cur_frame)
+
+            elif event.key == "Home":
+                self.cur_frame = 0
+                self.show_frame(self.cur_frame)
+
+            elif event.key == "End":
+                self.cur_frame = len(self.frames) - 1
+                self.show_frame(self.cur_frame)
+
+            elif event.key == "Escape":
+                canvas.close()
+
+        self.timer = app.Timer(
+            interval=1.0 / fps,
+            connect=lambda event: advance(),
+            start=True,
+        )
+
+        self.print_controls()
+
+        app.run()
+
+    def start(self):
+        self.playing = True
+
+    @staticmethod
+    def print_controls():
+        print()
+        print("Controls")
+        print("--------")
+        print("Space  : Play/Pause")
+        print("← →    : Frame step")
+        print("Home   : First frame")
+        print("End    : Last frame")
+        print("L      : Loop On/Off")
+        print("Mouse  : Pan")
+        print("Wheel  : Zoom")
+        print()
+
+    def show_frame(self, frame_number):
+
+        frame = self.frames[frame_number]
+
+        self.image.set_data(frame["image"])

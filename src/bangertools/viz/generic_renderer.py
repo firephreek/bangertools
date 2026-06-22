@@ -1,5 +1,3 @@
-import numpy as np
-
 from .common import color_from_temperature, Renderer
 
 
@@ -86,8 +84,220 @@ class CollapseRenderer(Renderer):
 
         return c
 
+import numpy as np
+import pynbody
+
+
+class FaceOnDensityRenderer(Renderer):
+
+    IMAGE_SIZE = 1024
+    WIDTH = "100 kpc"
+
+    def post_process(self):
+        pass
+
+    def render_frame(self, frame_number, image_visual):
+        image_visual.set_data(
+            self.frames[frame_number]["image"]
+        )
+
+    def snapshot_to_frame(self, snapshot):
+
+        snapshot.physical_units()
+
+        pynbody.analysis.halo.center(
+            snapshot,
+            mode="pot"
+        )
+
+        try:
+            with pynbody.analysis.angmom.faceon(snapshot):
+                img = pynbody.plot.image(
+                    snapshot.g,
+                    width=self.WIDTH,
+                    resolution=self.IMAGE_SIZE,
+                    noplot=True,
+                    log=True,
+                )
+        except Exception:
+            img = pynbody.plot.image(
+                snapshot.g,
+                width=self.WIDTH,
+                resolution=self.IMAGE_SIZE,
+                noplot=True,
+                log=True,
+            )
+
+        img = np.asarray(img, dtype=np.float32)
+
+        return {
+            "image": img
+        }
+
+
+class BlackHoleFormationRenderer(Renderer):
+    POINT_SIZE = 2
+    MAX_POINTS = 150_000
+
+    def post_process(self):
+        pass
+
+    def snapshot_to_frame(self, snapshot):
+        pos = np.asarray(snapshot.g["pos"], dtype=np.float32)
+
+        phi = np.asarray(snapshot.g["phi"], dtype=np.float32)
+
+        center_idx = np.argmin(phi)
+        center = pos[center_idx]
+
+        pos = pos - center
+
+        # Face-on projection:
+        # XY plane, ignore Z.
+        pos2d = np.zeros_like(pos)
+        pos2d[:, 0] = pos[:, 0]
+        pos2d[:, 1] = pos[:, 1]
+
+        # Potential well depth
+        phi_norm = phi - phi.min()
+
+        p99 = np.percentile(phi_norm, 99)
+
+        phi_norm = np.clip(phi_norm / p99, 0.0, 1.0)
+
+        # Invert so deepest potential -> brightest
+        collapse_strength = 1.0 - phi_norm
+
+        color = cm.inferno(collapse_strength)
+
+        # Highlight innermost 0.1%
+        threshold = np.percentile(phi, 0.1)
+
+        core_mask = phi <= threshold
+
+        color[core_mask] = np.array(
+            [0.2, 0.8, 1.0, 1.0],
+            dtype=np.float32
+        )
+
+        if len(pos2d) > self.MAX_POINTS:
+            weights = collapse_strength + 1e-6
+
+            idx = np.random.choice(
+                len(pos2d),
+                self.MAX_POINTS,
+                replace=False,
+                p=weights / weights.sum()
+            )
+
+            pos2d = pos2d[idx]
+            color = color[idx]
+
+        return {
+            "pos": pos2d.astype(np.float32),
+            "color": color.astype(np.float32),
+            "center": center,
+        }
+
+    def render_frame(self, frame_number, scatter):
+        frame = self.frames[frame_number]
+
+        scatter.set_data(
+            frame["pos"],
+            face_color=frame["color"],
+            size=self.POINT_SIZE,
+            edge_color=None
+        )
+
+
+from matplotlib import cm
+import numpy as np
+import pynbody
+
+
+class FaceOnGasRenderer(Renderer):
+    IMAGE_SIZE = 512
+    WIDTH = "100 kpc"
+    MAX_PIXELS = None
+
+    def post_process(self):
+        pass
+
+    def snapshot_to_frame(self, snapshot):
+        snapshot.physical_units()
+
+        h = snapshot.halos()
+
+        with pynbody.analysis.faceon(h[0]):
+            img = pynbody.plot.image(
+                snapshot.g,
+                width=self.WIDTH,
+                units="Msol kpc^-2",
+                resolution=self.IMAGE_SIZE,
+                cmap="bone",
+                noplot=True,
+                log=True,
+            )
+
+        img = np.asarray(img, dtype=np.float32)
+
+        finite = np.isfinite(img)
+        vmin = np.percentile(img[finite], 5)
+        vmax = np.percentile(img[finite], 99.5)
+
+        img = np.clip((img - vmin) / (vmax - vmin), 0.0, 1.0)
+
+        rgba = cm.bone(img).astype(np.float32)
+
+        ny, nx = img.shape
+
+        x = np.linspace(-1.0, 1.0, nx)
+        y = np.linspace(-1.0, 1.0, ny)
+
+        xx, yy = np.meshgrid(x, y)
+
+        pos = np.column_stack([
+            xx.ravel(),
+            yy.ravel(),
+            np.zeros(nx * ny, dtype=np.float32)
+        ]).astype(np.float32)
+
+        color = rgba.reshape(-1, 4)
+
+        mask = img.ravel() > 0.01
+
+        pos = pos[mask]
+        color = color[mask]
+
+        if self.MAX_PIXELS and len(pos) > self.MAX_PIXELS:
+            idx = np.random.choice(
+                len(pos),
+                self.MAX_PIXELS,
+                replace=False
+            )
+            pos = pos[idx]
+            color = color[idx]
+
+        return {
+            "pos": pos,
+            "color": color
+        }
+
+    def render_frame(self, frame_number, scatter):
+        frame = self.frames[frame_number]
+
+        scatter.set_data(
+            frame["pos"],
+            face_color=frame["color"],
+            edge_color=None,
+            size=2,
+        )
+
 
 class GenericRenderer(Renderer):
+
+    def post_process(self):
+        pass
 
     def render_frame(self, frame_number, scatter):
         frame = self.frames[frame_number]
