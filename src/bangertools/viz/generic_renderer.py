@@ -1,3 +1,7 @@
+import numpy as np
+import pynbody
+from matplotlib import cm
+
 from .common import color_from_temperature, Renderer
 
 
@@ -83,10 +87,6 @@ class CollapseRenderer(Renderer):
         c[:, 3] = 0.9
 
         return c
-
-import numpy as np
-import pynbody
-
 
 class FaceOnDensityRenderer(Renderer):
 
@@ -208,11 +208,6 @@ class BlackHoleFormationRenderer(Renderer):
             size=self.POINT_SIZE,
             edge_color=None
         )
-
-
-from matplotlib import cm
-import numpy as np
-import pynbody
 
 
 class FaceOnGasRenderer(Renderer):

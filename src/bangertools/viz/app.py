@@ -1,9 +1,8 @@
 import typer
 
 from bangertools import FilePath
+from .generic_renderer import GenericRenderer, CollapseRenderer, FaceOnDensityRenderer
 from .player import Player, ImagePlayer
-from .generic_renderer import GenericRenderer, CollapseRenderer, FaceOnGasRenderer, BlackHoleFormationRenderer, \
-     FaceOnDensityRenderer
 
 app = typer.Typer(help="Data visualization commands")
 
@@ -28,6 +27,8 @@ def render_traj_command(dir_path:FilePath="./"):
     renderer = CollapseRenderer(dir_path)
     player = Player(renderer)
     player.start()
+
+
 # @app.command(name="build_npz")
 # def build_npz_command(
 #         file_path: FilePath = "./core_trajectories.npz"):  # TODO: Make this a directory and a file and default to local and this name for either if they're not present.

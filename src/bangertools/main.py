@@ -3,7 +3,7 @@ from typing import Annotated
 from typer import Argument, Typer
 
 from bangertools import utilities, convert, FilePath, SnapshotPath
-from viz.app import app as viz_app
+from bangertools.viz.app import app as viz_app
 
 # setup typer. This gives us a nice cli framework to call commands with
 app = Typer()
@@ -121,12 +121,6 @@ def fix_zeros(snapshot_path: SnapshotPath):
 @app.command(name="convert")
 def convert_snapshot(snapshot_path: SnapshotPath):
     convert.convert(snapshot_path)
-
-
-@app.command(name="buildcore")
-def build_snap_short_core(file_path: FilePath, prefix: str = "o9M_1.*"):
-    from bangertools.lib.core import build_core
-    build_core(file_path, prefix)
 
 
 @app.command(name="info")

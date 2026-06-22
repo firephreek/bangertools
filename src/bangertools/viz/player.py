@@ -92,19 +92,15 @@ class Player:
     def show_frame(self, frame_number):
         self.renderer.render_frame(frame_number, self.scatter)
 
-from vispy import app
-from vispy.color import Color
-from vispy.scene import SceneCanvas, visuals
-
 
 class ImagePlayer:
 
     def __init__(
-        self,
-        renderer,
-        fps=20,
-        loop=True,
-        size=(1200, 1200)
+            self,
+            renderer,
+            fps=20,
+            loop=True,
+            size=(1200, 1200)
     ):
 
         canvas = SceneCanvas(
