@@ -135,11 +135,18 @@ def render(f):
 def set_frame(f):
 
     global frame
+    if f >= n_frames:
+        f = 0
+    elif f < 0:
+        f = n_frames
 
     frame = max(
         0,
         min(n_frames - 1, f)
     )
+
+    if frame >= n_frames:
+        frame = 0
 
     render(frame)
 

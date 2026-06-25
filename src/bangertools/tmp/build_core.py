@@ -14,18 +14,17 @@ Trajectory shape:
     (n_particles, n_snapshots, 3)
 """
 
-from pathlib import Path
 import re
+from pathlib import Path
 
 import numpy as np
 import pynbody
-
 
 # =====================================================
 # CONFIG
 # =====================================================
 
-FINAL_CORE_PARTICLES = 1000
+FINAL_CORE_PARTICLES = 10000
 SNAP_PATTERN = r"o9M_1\.\d+"
 
 
