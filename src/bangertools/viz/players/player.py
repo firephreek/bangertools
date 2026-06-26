@@ -8,7 +8,6 @@ class Player:
     def __init__(self,
                  frames,
                  canvas,
-                 visualizer,
                  fps=20,
                  loop=True,
                  size=(1800, 1000),
@@ -23,13 +22,15 @@ class Player:
         self.cur_frame = 0
         self.frames = frames
         self.canvas = canvas
+
         self.canvas.unfreeze()
-        self.canvas.show = show
         self.canvas.bgcolor = bgcolor
         self.canvas.keys = keys
-        self.canvas.freeze()
         self.canvas.size = size
-        self.visualizer = visualizer
+        self.canvas.freeze()
+
+        if show:
+            self.canvas.show()
 
         @canvas.events.mouse_wheel.connect
         def on_scroll(event):
@@ -43,7 +44,7 @@ class Player:
                 self.loop = not self.loop
             else:
                 if event.key == "Escape":
-                    canvas.close()
+                    self.canvas.close()
                 elif event.key == "Right":
                     self.cur_frame = min(self.cur_frame + 1, len(self.frames) - 1)
                 elif event.key == "Left":
@@ -52,7 +53,7 @@ class Player:
                     self.cur_frame = 0
                 elif event.key == "End":
                     self.cur_frame = len(self.frames) - 1
-                self.show_frame(self.cur_frame)
+                self.show_frame(self.frames[self.cur_frame])
 
         self.timer = app.Timer(
             interval=1.0 / self.fps,
@@ -61,12 +62,13 @@ class Player:
         )
 
         self.print_controls()
+        self.show_frame(self.frames[self.cur_frame])
+
         app.run()
 
     def advance(self):
         if not self.playing:
             return
-
         if self.cur_frame >= len(self.frames) - 1:
             if self.loop:
                 self.cur_frame = 0
@@ -76,10 +78,10 @@ class Player:
         else:
             self.cur_frame += 1
 
-        self.show_frame(self.cur_frame)
+        self.show_frame(self.frames[self.cur_frame])
 
     def show_frame(self, frame_number):
-        self.visualizer.set_data(self.frames[frame_number])
+        raise NotImplementedError("You must implement this method in your player class")
 
     def start(self):
         self.playing = True
@@ -97,21 +99,6 @@ class Player:
         print("Mouse  : Rotate")
         print("Wheel  : Zoom")
         print()
-
-
-class PointPlayer(Player):
-
-    def __init__(self, frames):
-        canvas = SceneCanvas(
-            keys="interactive",
-        )
-
-        view = canvas.central_widget.add_view()
-        view.camera.distance = 2.0
-        view.camera = "turntable"
-        visualizer = visuals.Markers(parent=view.scene)
-
-        super().__init__(frames, canvas, visualizer)
 
 
 class ImagePlayer:

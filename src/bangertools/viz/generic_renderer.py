@@ -39,22 +39,6 @@ class CollapseRenderer(Renderer):
         bh_frame = int(bh_candidates[0]) if len(bh_candidates) else np.argmin(self.phi_min)
         self.bh_frames.append(bh_frame)
 
-    def render_frame(self, frame_number, scatter):
-        frame = self.frames[frame_number]
-        phi = frame['phi']
-        pos = frame['pos']
-        temp = frame['temp']
-
-        idx = np.argmin(phi)
-        center = pos[idx]
-        pos = pos - center
-
-        scatter.set_data(
-            pos,
-            face_color=self.color(temp),
-            size=self.POINT_SIZE
-        )
-
     def snapshot_to_frame(self, snapshot):
         pos = np.asarray(snapshot["pos"], dtype="float32")
         temp = np.asarray(snapshot["tempEff"], dtype="float32")
