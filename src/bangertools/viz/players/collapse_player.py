@@ -5,11 +5,6 @@ from .player import Player
 
 
 class CollapsePlayer(Player):
-    show_trails = True
-    bh_frames = []
-    phi_min = []
-    core_h2 = []
-    core_temp = []
 
     def __init__(self, frames):
         canvas = SceneCanvas()
@@ -19,33 +14,6 @@ class CollapsePlayer(Player):
         self.scatter = visuals.Markers(parent=view.scene)
 
         super().__init__(frames, canvas)
-
-    def post_process(self):
-        for frame in self.frames:
-            phi = frame['phi']
-            pos = frame['pos']
-            temp = frame['temp']
-            h2 = frame['h2']
-
-            idx = np.argmin(phi)
-            center = pos[idx]
-            pos = pos - center
-            idx = np.argmin(phi)
-            center = pos[idx]
-            r = np.linalg.norm(pos - center, axis=1)
-            core = r < np.percentile(r, 1)
-
-            self.phi_min.append(phi[idx])
-            self.core_h2.append(np.mean(h2[core]))
-            self.core_temp.append(np.mean(temp[core]))
-
-        dphi = np.gradient(self.phi_min)
-
-        where = np.where((self.phi_min == np.min(self.phi_min)) & (np.abs(dphi) < np.percentile(np.abs(dphi), 10)))
-        bh_candidates = where[0]
-
-        bh_frame = int(bh_candidates[0]) if len(bh_candidates) else np.argmin(self.phi_min)
-        self.bh_frames.append(bh_frame)
 
     def show_frame(self, frame):
         phi = frame['phi']
@@ -61,14 +29,6 @@ class CollapsePlayer(Player):
             face_color=self.color(temp),
             size=3
         )
-
-    def snapshot_to_frame(self, snapshot):
-        pos = np.asarray(snapshot["pos"], dtype="float32")
-        temp = np.asarray(snapshot["tempEff"], dtype="float32")
-        phi = np.asarray(snapshot["phi"], dtype="float32")
-        h2 = np.asarray(snapshot.get("H2", np.zeros(len(pos))), dtype="float32")
-
-        return {'pos': pos, 'temp': temp, 'phi': phi, 'h2': h2}
 
     def color(self, temp):
         temp = np.nan_to_num(temp)
