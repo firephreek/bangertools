@@ -2,7 +2,7 @@ import typer
 
 from bangertools import FilePath
 from .generic_renderer import GenericRenderer, CollapseRenderer, FaceOnDensityRenderer
-from .player import Player, ImagePlayer
+from .player import Player, ImagePlayer, PointPlayer
 
 app = typer.Typer(help="Data visualization commands")
 
@@ -18,14 +18,15 @@ def view_core_command(dir_path: FilePath = "./"):  # TODO: provide a pattern mat
 def view_core_command(dir_path: FilePath = "./"):  # TODO: provide a pattern matching option
     print(f"3d Rendering tipsy files in {dir_path}")
     renderer = GenericRenderer(dir_path)
-    player = Player(renderer)
+    frames = renderer.frames
+    player = PointPlayer(frames)
     player.start()
 
 @app.command(name="collapse")
 def render_traj_command(dir_path:FilePath="./"):
     print(f"3d Rendering tipsy files in {dir_path}")
     renderer = CollapseRenderer(dir_path)
-    player = Player(renderer)
+    player = PointPlayer(renderer)
     player.start()
 
 
