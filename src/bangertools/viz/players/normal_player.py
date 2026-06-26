@@ -1,22 +1,15 @@
 import numpy as np
-from vispy.scene import SceneCanvas, visuals
 
-from .player import Player
+from .player import TurntablePlayer
 
 
-class NormalPlayer(Player):
+class NormalPlayer(TurntablePlayer):
 
     def __init__(self, frames):
-        canvas = SceneCanvas()
-        view = canvas.central_widget.add_view()
-        view.camera.distance = 2.0
-        view.camera = "turntable"
-
-        self.scatter = visuals.Markers(parent=view.scene)
         extent = np.max(np.linalg.norm(frames[0]['pos'], axis=1))
-        self.distance = extent.real * 2.0
+        distance = extent.real * 2.0
 
-        super().__init__(frames, canvas)
+        super().__init__(frames, distance=distance)
 
     def show_frame(self, frame):
         pos_ = frame['pos']

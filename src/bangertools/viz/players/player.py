@@ -101,6 +101,19 @@ class Player:
         print()
 
 
+class TurntablePlayer(Player):
+    def __init__(self, frames, distance=2.0):
+        canvas = SceneCanvas()
+        view = canvas.central_widget.add_view()
+        view.camera = "turntable"
+
+        view.camera.distance = distance
+
+        self.scatter = visuals.Markers(parent=view.scene)
+
+        super().__init__(frames, canvas)
+
+
 class ImagePlayer:
 
     def __init__(self, frames, ):
