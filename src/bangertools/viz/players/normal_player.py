@@ -1,3 +1,4 @@
+import numpy as np
 from vispy.scene import SceneCanvas, visuals
 
 from .player import Player
@@ -10,7 +11,10 @@ class NormalPlayer(Player):
         view = canvas.central_widget.add_view()
         view.camera.distance = 2.0
         view.camera = "turntable"
+
         self.scatter = visuals.Markers(parent=view.scene)
+        extent = np.max(np.linalg.norm(frames[0]['pos'], axis=1))
+        self.distance = extent.real * 2.0
 
         super().__init__(frames, canvas)
 

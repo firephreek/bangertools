@@ -3,6 +3,8 @@ import os
 from collections import Counter
 from typing import Annotated
 
+import numpy as np
+from matplotlib import cm
 from rich import print
 from typer import Argument, Typer
 
@@ -48,6 +50,23 @@ def snap_keys(file_path: Annotated[str, Argument(help="Path to the file")]):
         print(f"keys inside the AHF are: {AHF.columns.tolist()}")
     except:
         print(f"Unrecognized file {file_path}")
+
+
+def color_from_temperature(temp):
+    temp = np.nan_to_num(temp)
+
+    logt = np.log10(np.clip(temp, 1.0, None))
+
+    tmin = np.percentile(logt, 5)
+    tmax = np.percentile(logt, 95)
+
+    x = np.clip(
+        (logt - tmin) / (tmax - tmin + 1e-12),
+        0,
+        1
+    )
+
+    return cm.plasma(x).astype(np.float32)
 
 
 def dm_minmax(snapshot_path: FilePath):
