@@ -1,3 +1,4 @@
+import os
 import re
 from pathlib import Path
 
@@ -12,9 +13,10 @@ def load_snapshot(file_path: str, convert_units: bool = True):
     return snapshot
 
 
-def get_snapshots(dir_path: FilePath = "./"):
+def get_snapshots(dir_path: FilePath):
     snapshot_paths = [
-        p.name for p in Path(dir_path).glob(f"*")
+        os.path.join(dir_path, p.name) for p in Path(dir_path).glob(f"*")
+
         if re.fullmatch(r".*\.\d{6}", p.name)
     ]
 

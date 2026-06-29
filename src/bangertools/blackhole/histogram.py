@@ -6,13 +6,20 @@ def generate_hist(snapshot_paths):
     """
     Generate a histogram of tform values less than 1 from all Tipsy
     snapshots in a directory.
+
+    Parameters
+    ----------
+    directory : str
+        Path to a directory containing Tipsy snapshot files.
     """
 
     tforms = []
 
-    for snapshot_path in snapshot_paths:
+    for path in snapshot_paths:
+
         try:
-            sim = pynbody.load(snapshot_path)
+            print(f'loaded {path}')
+            sim = pynbody.load(path)
             sim.physical_units()
 
             if len(sim.s) == 0 or 'tform' not in sim.s.loadable_keys():
@@ -24,7 +31,7 @@ def generate_hist(snapshot_paths):
             tforms.extend(values)
 
         except Exception as e:
-            print(f"Skipping {snapshot_path}: {e}")
+            pass
 
     if len(tforms) == 0:
         print("No tform values less than 1 were found.")
