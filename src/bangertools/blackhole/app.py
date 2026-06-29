@@ -1,7 +1,9 @@
 import typer
 
 from bangertools import FilePath
+from .histogram import generate_hist
 from .reports import black_hole_log
+from ..common import util
 
 bh_app = typer.Typer(help="Reports and data generation")
 
@@ -13,4 +15,5 @@ def generate_blackholes_report(snapshot_path: FilePath = "./"):
 
 @bh_app.command(name="hist")
 def generate_histogram_report(snapshot_path: FilePath = "./"):
-    pass
+    snapshot_paths = util.get_snapshots(snapshot_path)
+    generate_hist(snapshot_paths)
