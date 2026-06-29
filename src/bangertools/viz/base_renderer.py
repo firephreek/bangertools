@@ -4,7 +4,6 @@ from pathlib import Path
 
 import numpy as np
 import pynbody
-from matplotlib import cm
 
 
 class Renderer:
@@ -18,7 +17,8 @@ class Renderer:
         cache_file_path = dir_path / f"{dir_path.name}.frames.{self.extension()}"
 
         try:
-            data = np.load(f'{cache_file_path}.npz', allow_pickle=True)   # TODO: Find out why we require allow_pickle on this renderer
+            data = np.load(f'{cache_file_path}.npz',
+                           allow_pickle=True)  # TODO: Find out why we require allow_pickle on this renderer
             self.frames = data['frames']
             if self.frames is None or len(self.frames) == 0 or rebuild_cache:
                 raise Exception()
@@ -55,14 +55,3 @@ class Renderer:
 
     def extension(self):
         return self.__class__.__name__.lower().replace("renderer", "")
-
-
-def color_from_temperature(temp):
-    temp = np.nan_to_num(temp)
-    logt = np.log10(np.clip(temp, 1.0, None))
-    tmin = np.percentile(logt, 5)
-    tmax = np.percentile(logt, 95)
-
-    x = np.clip((logt - tmin) / (tmax - tmin + 1e-12), 0, 1)
-
-    return cm.plasma(x).astype(np.float32)

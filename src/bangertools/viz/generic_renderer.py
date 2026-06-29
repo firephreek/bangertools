@@ -2,7 +2,8 @@ import numpy as np
 import pynbody
 from matplotlib import cm
 
-from .common import color_from_temperature, Renderer
+from .base_renderer import Renderer
+from ..common.color import color_from_temperature
 
 
 class CollapseRenderer(Renderer):

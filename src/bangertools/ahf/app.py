@@ -3,17 +3,17 @@ import os
 from collections import Counter
 from typing import Annotated
 
-import numpy as np
-from matplotlib import cm
+import typer
 from rich import print
-from typer import Argument, Typer
+from typer import Argument
 
-from bangertools import FilePath
+from bangertools import FilePath, SnapshotPath
+from bangertools.common.util import load_snapshot
 
-# setup typer. This gives us a nice cli framework to call commands with
-app = Typer()
+ahf_app = typer.Typer(help="AHF utilities and reports")
 
 # constants
+# TODO: Should this be in a constants file?
 HUBBLE_CONST = 0.67  # Hubble param to convert M_sun/h to M_sun
 HI_RES_CUT = 0.0  # fMhires threshold
 G_CGS = 6.674e-8
@@ -30,14 +30,19 @@ def load_AHF(file_path: str):
     return read_csv(file_path, sep='\t', header=0)
 
 
-def load_snapshot(file_path: str, convert_units: bool = True):
-    import pynbody as pn
-    snapshot = pn.load(file_path)
-    if convert_units:
-        snapshot.physical_units()  # converting code units to physical units
-    return snapshot
+@ahf_app.command(name="info")
+def info_command(file_path: FilePath):
+    import pynbody
+    import time
+
+    t0 = time.time()
+    s = pynbody.load(file_path)
+
+    print("Load time:", time.time() - t0)
+    print("Particles:", len(s))
 
 
+@ahf_app.command(name="keys")
 def snap_keys(file_path: Annotated[str, Argument(help="Path to the file")]):
     """
     List all the keys in the AHF halo catalog or snapshot file
@@ -52,23 +57,7 @@ def snap_keys(file_path: Annotated[str, Argument(help="Path to the file")]):
         print(f"Unrecognized file {file_path}")
 
 
-def color_from_temperature(temp):
-    temp = np.nan_to_num(temp)
-
-    logt = np.log10(np.clip(temp, 1.0, None))
-
-    tmin = np.percentile(logt, 5)
-    tmax = np.percentile(logt, 95)
-
-    x = np.clip(
-        (logt - tmin) / (tmax - tmin + 1e-12),
-        0,
-        1
-    )
-
-    return cm.plasma(x).astype(np.float32)
-
-
+@ahf_app.command(name="minmax")
 def dm_minmax(snapshot_path: FilePath):
     """
     Print min/max DM particle mass and their ratio
@@ -80,15 +69,16 @@ def dm_minmax(snapshot_path: FilePath):
     print(f" ratio: {snapshot.dm['mass'].max() / snapshot.dm['mass'].min(): .3e}")
 
 
+@ahf_app.command(name="info")
 def AHF_halo_info(ahf_path: FilePath):
     """
     Print total number of halos in AHF
     """
-
     AHF = load_AHF(ahf_path)
     print(f"total number of halos: {len(AHF)}")
 
 
+@ahf_app.command(name="mass")
 def AHF_halo_mass(ahf_path: FilePath):
     """
     Print halo masses and most/least massive halo
@@ -111,7 +101,8 @@ def AHF_halo_mass(ahf_path: FilePath):
     print(f"least massive: halo {ids[masses.idxmin()]} with {masses.min():.3e} M_sun")
 
 
-def BH_count(snapshot_path: FilePath):
+@ahf_app.command(name="count")
+def BH_count(snapshot_path: SnapshotPath):
     """
     Counts BHs in the snapshot
     """
@@ -121,7 +112,8 @@ def BH_count(snapshot_path: FilePath):
     print(f'total number of BHs: {len(bhs)}')
 
 
-def BH_halos(snapshot_path: FilePath, ahf_path: FilePath = None):
+@ahf_app.command(name="halos")
+def BH_halos(snapshot_path: SnapshotPath, ahf_path: FilePath = None):
     """
     Print which halos contain BHs and their masses
     If the ahf_path is not provided, it will try to find one using a `snapshot_path.*.AHF_halos` glob pattern
@@ -143,6 +135,7 @@ def BH_halos(snapshot_path: FilePath, ahf_path: FilePath = None):
         print(f"halo {halo_id} has {n} BH(s) with {mass:.3e} M_sun")
 
 
+@ahf_app.command(name="halo-masses")
 def mass_range(file_path="halo_masses.csv"):
     """
     Print min/max halo mass from the saved CSV
@@ -156,6 +149,7 @@ def mass_range(file_path="halo_masses.csv"):
     print(f"max mass: {masses.max():.3e} M_sun")
 
 
+@ahf_app.command(name="write-csv")
 def write_csvs(snapshot_path: FilePath, ahf_path: FilePath):
     """
     Write halo_masses.csv and BH_masses.csv to be used for the occupation fraction plot
@@ -208,6 +202,7 @@ def write_csvs(snapshot_path: FilePath, ahf_path: FilePath):
     print("saved halo_masses.csv and BH_masses.csv")
 
 
+@ahf_app.command(name="plot")
 def plot_of_pretty(n: Annotated[int, Argument(help="Seed value")]):
     """
     Plot with bin counts annotated and color coding
@@ -269,6 +264,7 @@ def plot_of_pretty(n: Annotated[int, Argument(help="Seed value")]):
     plt.show()
 
 
+@ahf_app.command(name="vkick")
 def conv_vkick(value: Annotated[float, Argument(help="The floating point value of the kick")]):
     """
     Convert a kick velocity from code units to km/s
@@ -279,6 +275,7 @@ def conv_vkick(value: Annotated[float, Argument(help="The floating point value o
     print(f"{value} code units = {value * dKmPerSecUnit:.4f} km/s")
 
 
+@ahf_app.command(name="fMhires")
 def check_fMhires(ahf_path: FilePath):
     """
     Prints fMhires values for the first few halos to verify their values
@@ -287,6 +284,7 @@ def check_fMhires(ahf_path: FilePath):
     print(AHF[['#ID(1)', 'Mhalo(4)', 'fMhires(38)']].head(10).to_string())
 
 
+@ahf_app.command(name="zeros")
 def check_snapshot_zeros(snapshot_path: FilePath):
     """
     Check for zero mass particles in the snapshot
@@ -325,6 +323,7 @@ def check_snapshot_zeros(snapshot_path: FilePath):
         print("  OK: No NaN mass particles found.")
 
 
+@ahf_app.command(name="fix-zeros")
 def fix_zeros(snapshot_path: FilePath):
     import pynbody as pn
     """
