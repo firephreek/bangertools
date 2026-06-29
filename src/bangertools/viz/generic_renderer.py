@@ -73,8 +73,8 @@ class CollapseRenderer(Renderer):
 
         return c
 
-class FaceOnDensityRenderer(Renderer):
 
+class FaceOnDensityRenderer(Renderer):
     IMAGE_SIZE = 1024
     WIDTH = "100 kpc"
 

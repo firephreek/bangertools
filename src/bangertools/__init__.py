@@ -1,4 +1,5 @@
 from typing import Annotated
+
 from typer import Argument
 
 FilePath = Annotated[str, Argument(help="Path to the file")]

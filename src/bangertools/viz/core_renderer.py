@@ -68,4 +68,3 @@ class CoreRenderer(SnapshotRenderer):
             frames.append(frame)
 
         return frames
-

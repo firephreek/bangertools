@@ -1,6 +1,5 @@
 import sys
 
-
 # constants
 MSUN_GRAM = 2e30
 MUNIT = 2.36e+05

@@ -39,6 +39,7 @@ def load_frames(dir_path):
 
     return frames
 
+
 @app.command(name="gas")
 def view_core_command(dir_path: FilePath = "./"):  # TODO: provide a pattern matching option
     print(f"3d Rendering tipsy files in {dir_path}")
