@@ -12,7 +12,7 @@ PHYSICAL_WIDTH_INCHES = PHYSICAL_WIDTH_KPC * KPC_TO_INCHES
 DEN_TO_AMUCC = (MSUN_GRAM * MUNIT) / (PCCM * MP)
 
 
-def bh_log(input_file):
+def black_hole_log(input_file):
     import numpy as np
     import pynbody
 
@@ -77,4 +77,4 @@ def bh_log(input_file):
 
 if __name__ == '__main__':
     input_file = sys.argv[1]
-    bh_log(input_file)
+    black_hole_log(input_file)
