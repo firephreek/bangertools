@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Annotated
 
 import matplotlib.pyplot as plt
@@ -7,9 +8,9 @@ import typer
 from bangertools.common import util
 
 OutputPath = Annotated[str, typer.Option(help="Optional file name to save the histogram to.")]
-COLORS = ["blue", "green", "red", "cyan", "magenta", "yellow", "black", "orange",
-          "purple", "brown", "pink", "gray", "olive", "lime", "teal", "navy", "maroon",
-          "gold", "coral", "turquoise", "indigo", "violet", "salmon", "khaki", "crimson"]
+COLORS = ["blue", "green", "red", "cyan", "yellow", "black", "orange",
+          "purple", "brown", "gray", "olive", "lime", "teal", "navy", "maroon",
+          "gold", "turquoise", "indigo", "violet", "khaki", "crimson"]
 
 
 class StackedHistogram:
@@ -28,18 +29,22 @@ class StackedHistogram:
         self.bins = bins
         self.facecolors = []
         self.legend = legend
+        self.labels = []
         self.title = title
         self.xlabel = xlabel
         self.ylabel = ylabel
 
         self.fig, self.ax = plt.subplots()
 
-    def add_snapshots(self, path, filter=None, transform=None, color=None, edgecolor="black", filled=True):
+    def add_snapshots(self, path, label=None, filter=None, transform=None, color=None, edgecolor="black", filled=True):
         keys = []
         if not color:  # If a color isn't specified, pick the next one from the list...
             self.facecolors.append(COLORS[self.color_idx])
             self.color_idx += 1  # ...and don't forget to increment the list index
 
+        if not label:  # No explict label, we'll have to build one...
+            label = Path(path).name
+        self.labels.append(label)
         snapshot_paths = util.get_snapshots(path)
         for path in snapshot_paths:
             try:
@@ -47,7 +52,7 @@ class StackedHistogram:
                 sim.physical_units()
                 if len(sim.s) == 0 or self.key not in sim.s.loadable_keys():
                     continue
-                values = None
+
                 if filter:
                     values = sim.stars[filter][self.key]
                 else:
@@ -62,7 +67,7 @@ class StackedHistogram:
         self.data.append(keys)
 
     def generate(self, output_file: OutputPath = None):
-        self.ax.hist(self.data, self.bins, histtype="barstacked", facecolor=self.facecolors)
+        self.ax.hist(self.data, self.bins, label=self.labels, histtype="barstacked", facecolor=self.facecolors)
         self.ax.legend()
         self.ax.set_title(self.title)
 
