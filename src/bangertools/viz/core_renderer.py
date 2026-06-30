@@ -5,6 +5,8 @@ from pathlib import Path
 import numpy as np
 import pynbody
 
+from bangertools.common.color import color_from_temperature
+
 
 class SnapshotRenderer:
     def generate_frames(self, dir_path):
