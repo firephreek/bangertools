@@ -18,15 +18,15 @@ def get_snapshots(paths: list[FilePath]):
     Returns a sorted and de-duplicated collection of snapshot files from the provided paths.
     :param paths: A list of directories of files.
     """
-    snapshot_paths = []
-    for path in paths:
-        if os.path.isfile(path):
-            snapshot_paths.append(path)
-        elif os.path.isdir(path):
-            for p in Path(path).glob(f"*"):
-                if re.fullmatch(r".*\.\d{6}", p.name):
-                    snapshot_paths.append(os.path.join(path, p.name))
+    snapshot_paths = set()
 
-    snapshot_paths.sort()
+    for path in map(Path, paths):
+        if path.is_file():
+            snapshot_paths.add(path)
+        elif path.is_dir():
+            snapshot_paths.update(
+                p for p in path.iterdir()
+                if re.fullmatch(r".*\.\d{6}", p.name)
+            )
 
-    return set(snapshot_paths)
+    return sorted(snapshot_paths)

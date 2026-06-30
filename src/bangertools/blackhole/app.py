@@ -17,8 +17,16 @@ def generate_blackholes_report(snapshot_path: FilePath):
 
 
 @bh_app.command(name="hist")
-def generate_histogram_report(paths: Annotated[list[str], typer.Argument()] = "./",
-                              output_file: str = ""):
+def generate_histogram_report(
+        paths: Annotated[
+            list[str], typer.Argument(help="A list of snapshot files or paths containing snapshots")] = "./",
+        output: Annotated[str, typer.Option(help="Optional file name to save the histogram to.")] = ""
+):
+    """
+    Generates a histogram of blackholes found in the provided snapshots.
+    :param paths: One more or paths with snapshot files or explicit snapshot files
+    :param output: Optional. If provided, the plot will be saved to this file instead of being shown
+    """
     snapshot_paths = util.get_snapshots(paths)
     histogram = Histogram(snapshot_paths, 'tform',
                           title="Histogram of Star Particles with tform < 1",
@@ -27,4 +35,4 @@ def generate_histogram_report(paths: Annotated[list[str], typer.Argument()] = ".
                           bins=20)
 
     histogram.add_filter(pynbody.filt.LowPass('tform', 0.0))
-    histogram.generate(output_file)
+    histogram.generate(output)

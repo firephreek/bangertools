@@ -57,7 +57,7 @@ class Histogram:
         plt.ylabel(self.ylabel)
         plt.title(self.title)
         plt.tight_layout()
-        if output_file is None:
+        if not output_file:
             plt.show()
         else:
             plt.savefig(output_file)
