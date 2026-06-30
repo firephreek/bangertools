@@ -1,6 +1,76 @@
+from typing import Annotated
+
 import matplotlib.pyplot as plt
 import pynbody
+import typer
 
+from bangertools.common import util
+
+OutputPath = Annotated[str, typer.Option(help="Optional file name to save the histogram to.")]
+COLORS = ["blue", "green", "red", "cyan", "magenta", "yellow", "black", "orange",
+          "purple", "brown", "pink", "gray", "olive", "lime", "teal", "navy", "maroon",
+          "gold", "coral", "turquoise", "indigo", "violet", "salmon", "khaki", "crimson"]
+
+
+class StackedHistogram:
+    color_idx = 0
+    data = []
+
+    def __init__(self,
+                 key,
+                 title="Histogram of Star Particles with tform < 1",
+                 xlabel="tform",
+                 ylabel="Number of Star Particles",
+                 legend=list,
+                 bins=20
+                 ):
+        self.key = key
+        self.bins = bins
+        self.facecolors = []
+        self.legend = legend
+        self.title = title
+        self.xlabel = xlabel
+        self.ylabel = ylabel
+
+        self.fig, self.ax = plt.subplots()
+
+    def add_snapshots(self, path, filter=None, transform=None, color=None, edgecolor="black", filled=True):
+        keys = []
+        if not color:  # If a color isn't specified, pick the next one from the list...
+            self.facecolors.append(COLORS[self.color_idx])
+            self.color_idx += 1  # ...and don't forget to increment the list index
+
+        snapshot_paths = util.get_snapshots(path)
+        for path in snapshot_paths:
+            try:
+                sim = pynbody.load(path)
+                sim.physical_units()
+                if len(sim.s) == 0 or self.key not in sim.s.loadable_keys():
+                    continue
+                values = None
+                if filter:
+                    values = sim.stars[filter][self.key]
+                else:
+                    values = sim.stars[self.key]
+                keys.extend(values)
+            except Exception as e:
+                # TODO: Handle this better
+                pass
+        if transform:
+            keys = transform(keys)
+
+        self.data.append(keys)
+
+    def generate(self, output_file: OutputPath = None):
+        self.ax.hist(self.data, self.bins, histtype="barstacked", facecolor=self.facecolors)
+        self.ax.legend()
+        self.ax.set_title(self.title)
+
+        if not output_file:
+            plt.show()
+        else:
+            plt.savefig(output_file)
+        plt.show()
 
 class Histogram:
     def __init__(self,
@@ -59,7 +129,7 @@ class Histogram:
                 pass
 
         for transform in self.transforms:
-            keys = transform(keys)  # What's the right way around for this?
+            keys = transform(keys)
 
         plt.figure(figsize=self.figsize)
         plt.hist(keys, self.bins, edgecolor=self.edgecolor)

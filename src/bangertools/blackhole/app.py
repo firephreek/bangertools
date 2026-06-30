@@ -1,10 +1,8 @@
-from typing import Annotated
-
 import pynbody
 import typer
 
 from bangertools import FilePath, PathList
-from .histogram import Histogram
+from .histogram import Histogram, StackedHistogram, OutputPath
 from .reports import black_hole_log
 from ..common import util
 
@@ -17,10 +15,7 @@ def generate_blackholes_report(snapshot_path: FilePath):
 
 
 @bh_app.command(name="hist")
-def generate_histogram_report(
-        paths: PathList = "./",
-        output: Annotated[str, typer.Option(help="Optional file name to save the histogram to.")] = ""
-):
+def generate_histogram_report(paths: PathList = "./", output: OutputPath = None):
     """
     Generates a histogram of blackholes found in the provided snapshots.
     :param paths: One more or paths with snapshot files or explicit snapshot files
@@ -34,10 +29,21 @@ def generate_histogram_report(
                           bins=20)
 
     histogram.add_filter(pynbody.filt.LowPass('tform', 0.0))
-    histogram.add_transform(lambda keys: [k * -1 for k in keys])
+    histogram.add_transform(lambda values: [k * -1 for k in values])
     histogram.generate(output)
 
 
 @bh_app.command(name="stack_hist")
-def generate_stacked_histogram(paths: PathList):
-    pass
+def generate_stacked_histogram(paths: PathList, output: OutputPath = None):
+    stacked_histogram = StackedHistogram('tform',
+                                         title="Histogram of Star Particles with tform < 1",
+                                         xlabel="tform",
+                                         ylabel="Number of Star Particles",
+                                         legend=[],
+                                         bins=20)
+
+    filter = pynbody.filt.LowPass('tform', 0.0)
+    transform = lambda values: [k * -1 for k in values]
+    for i, path in enumerate(paths):  # TODO: Needs some good logging here
+        stacked_histogram.add_snapshots(path, filter=filter, transform=transform)
+    stacked_histogram.generate(output)
