@@ -1,9 +1,8 @@
-import os
-
+import pynbody
 import typer
 
 from bangertools import FilePath
-from .histogram import generate_hist
+from .histogram import Histogram
 from .reports import black_hole_log
 from ..common import util
 
@@ -11,20 +10,17 @@ bh_app = typer.Typer(help="Reports and data generation")
 
 
 @bh_app.command(name="info")
-def generate_blackholes_report(snapshot_path: FilePath = "./"):
-    black_hole_log(snapshot_path)
+def generate_blackholes_report(snapshot_path: FilePath):
+    black_hole_log(snapshot_path or "./")
 
 
 @bh_app.command(name="hist")
-def generate_histogram_report(snapshot_path: FilePath = "./"):
-    snapshot_paths = []
-    for filename in sorted(os.listdir(snapshot_path)):
-        path = os.path.join(snapshot_path, filename)
-
-        if not os.path.isfile(path):
-            continue
-
-        snapshot_paths.append(path)
-
-    snapshot_paths_2 = util.get_snapshots(snapshot_path)
-    generate_hist(snapshot_paths_2)
+def generate_histogram_report(snapshot_path: FilePath, output_file: str):
+    snapshot_paths = util.get_snapshots(snapshot_path or "./")
+    histogram = Histogram(snapshot_paths, 'tform',
+                          title="Histogram of Star Particles with tform < 1",
+                          xlabel="tform",
+                          ylabel="Number of Star Particles",
+                          bins=20)
+    histogram.add_filter(pynbody.filt.LowPass('tform', 0.0))
+    histogram.generate(output_file)
