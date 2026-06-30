@@ -35,4 +35,5 @@ def generate_histogram_report(
                           bins=20)
 
     histogram.add_filter(pynbody.filt.LowPass('tform', 0.0))
+    # histogram.add_transform(lambda keys: [k * -1 for k in keys])
     histogram.generate(output)

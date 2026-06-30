@@ -13,6 +13,7 @@ class Histogram:
                  edgecolor='black',
                  figsize=(8, 6)):
         self.figsize = figsize
+        self.transforms = []
         self.filters = []
         self.bins = bins
         self.xlabel = xlabel
@@ -21,6 +22,12 @@ class Histogram:
         self.snapshot_paths = snapshot_paths
         self.key = key_field
         self.edgecolor = edgecolor
+
+    def add_transform(self, transform):
+        self.transforms.append(transform)
+
+    def add_filter(self, filter):
+        self.filters.append(filter)
 
     def generate(self, output_file=None):
         """
@@ -51,7 +58,8 @@ class Histogram:
             except Exception as e:
                 pass
 
-        keys = [k *-1 for k in keys]    # What's the right way around for this?
+        for transform in self.transforms:
+            keys = transform(keys)  # What's the right way around for this?
 
         plt.figure(figsize=self.figsize)
         plt.hist(keys, self.bins, edgecolor=self.edgecolor)
@@ -64,6 +72,3 @@ class Histogram:
             plt.show()
         else:
             plt.savefig(output_file)
-
-    def add_filter(self, filter):
-        self.filters.append(filter)
