@@ -51,12 +51,15 @@ class Histogram:
             except Exception as e:
                 pass
 
+        keys = [k *-1 for k in keys]    # What's the right way around for this?
+
         plt.figure(figsize=self.figsize)
         plt.hist(keys, self.bins, edgecolor=self.edgecolor)
         plt.xlabel(self.xlabel)
         plt.ylabel(self.ylabel)
         plt.title(self.title)
         plt.tight_layout()
+
         if not output_file:
             plt.show()
         else:
