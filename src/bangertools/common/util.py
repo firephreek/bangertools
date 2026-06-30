@@ -1,7 +1,7 @@
 import re
 from pathlib import Path
 
-from bangertools import FilePath
+from bangertools import PathList
 
 
 def load_snapshot(file_path: str, convert_units: bool = True):
@@ -12,12 +12,16 @@ def load_snapshot(file_path: str, convert_units: bool = True):
     return snapshot
 
 
-def get_snapshots(paths: list[FilePath]):
+def get_snapshots(paths: PathList):
     """
     Returns a sorted and de-duplicated collection of snapshot files from the provided paths.
     :param paths: A list of directories of files.
     """
     snapshot_paths = set()
+
+    # If just a single path was passed as a string, turn it into a list for the next bit of code
+    if isinstance(paths, str):
+        paths = [paths]
 
     for path in map(Path, paths):
         if path.is_file():

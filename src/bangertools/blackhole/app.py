@@ -3,7 +3,7 @@ from typing import Annotated
 import pynbody
 import typer
 
-from bangertools import FilePath
+from bangertools import FilePath, PathList
 from .histogram import Histogram
 from .reports import black_hole_log
 from ..common import util
@@ -18,8 +18,7 @@ def generate_blackholes_report(snapshot_path: FilePath):
 
 @bh_app.command(name="hist")
 def generate_histogram_report(
-        paths: Annotated[
-            list[str], typer.Argument(help="A list of snapshot files or paths containing snapshots")] = "./",
+        paths: PathList = "./",
         output: Annotated[str, typer.Option(help="Optional file name to save the histogram to.")] = ""
 ):
     """
@@ -35,5 +34,10 @@ def generate_histogram_report(
                           bins=20)
 
     histogram.add_filter(pynbody.filt.LowPass('tform', 0.0))
-    # histogram.add_transform(lambda keys: [k * -1 for k in keys])
+    histogram.add_transform(lambda keys: [k * -1 for k in keys])
     histogram.generate(output)
+
+
+@bh_app.command(name="stack_hist")
+def generate_stacked_histogram(paths: PathList):
+    pass
