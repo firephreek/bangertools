@@ -2,7 +2,7 @@ import pynbody
 import typer
 
 from bangertools import FilePath, PathList
-from .histogram import Histogram, StackedHistogram, OutputPath
+from .histogram import Histogram, StackedHistogram, OutputPath, BarHistogram
 from .reports import black_hole_log
 from ..common import util
 
@@ -41,6 +41,22 @@ def generate_stacked_histogram(paths: PathList, output: OutputPath = None):
                                          ylabel="Number of Star Particles",
                                          legend=[],
                                          bins=20)
+
+    filter = pynbody.filt.LowPass('tform', 0.0)
+    transform = lambda values: [k * -1 for k in values]
+    for i, path in enumerate(paths):  # TODO: Needs some good logging here
+        stacked_histogram.add_snapshots(path, filter=filter, transform=transform)
+    stacked_histogram.generate(output)
+
+
+@bh_app.command(name="bar_hist")
+def generate_stacked_histogram(paths: PathList, output: OutputPath = None):
+    stacked_histogram = BarHistogram('rhoform',
+                                     title="Histogram of Star Particles with tform < 1",
+                                     xlabel="rhoform",
+                                     ylabel="Number of Star Particles",
+                                     legend=[],
+                                     bins=20)
 
     filter = pynbody.filt.LowPass('tform', 0.0)
     transform = lambda values: [k * -1 for k in values]

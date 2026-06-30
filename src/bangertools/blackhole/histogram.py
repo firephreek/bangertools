@@ -13,14 +13,14 @@ COLORS = ["blue", "green", "red", "cyan", "yellow", "black", "orange",
           "gold", "turquoise", "indigo", "violet", "khaki", "crimson"]
 
 
-class StackedHistogram:
+class BarHistogram:
     color_idx = 0
     data = []
 
     def __init__(self,
                  key,
                  title="Histogram of Star Particles with tform < 1",
-                 xlabel="tform",
+                 xlabel="rhoform",
                  ylabel="Number of Star Particles",
                  legend=list,
                  bins=20
@@ -67,7 +67,7 @@ class StackedHistogram:
         self.data.append(keys)
 
     def generate(self, output_file: OutputPath = None):
-        self.ax.hist(self.data, self.bins, label=self.labels, histtype="barstacked", facecolor=self.facecolors)
+        self.ax.hist(self.data, self.bins, label=self.labels, histtype="bar", facecolor=self.facecolors)
         self.ax.legend()
         self.ax.set_title(self.title)
 
@@ -76,6 +76,82 @@ class StackedHistogram:
         else:
             plt.savefig(output_file)
         plt.show()
+
+
+class StackedHistogram:
+    color_idx = 0
+    data = []
+
+    def __init__(self,
+                 key,
+                 title="Histogram of Star Particles with tform < 1",
+                 xlabel="tform",
+                 ylabel="Number of Star Particles",
+                 legend=list,
+                 bins=20
+                 ):
+        self.key = key
+        self.bins = bins
+        self.facecolors = []
+        self.legend = legend
+        self.labels = []
+        self.title = title
+        self.xlabel = xlabel
+        self.ylabel = ylabel
+
+        self.fig, self.ax = plt.subplots()
+
+    def add_snapshots(self, path, label=None, filter=None, transform=None, color=None, edgecolor="black", filled=True):
+        keys = []
+        # if not color:  # If a color isn't specified, pick the next one from the list...
+        #     self.facecolors.append(COLORS[self.color_idx])
+        #     self.color_idx += 1  # ...and don't forget to increment the list index
+
+        if not label:  # No explict label, we'll have to build one...
+            label = Path(path).name
+        self.labels.append(label)
+        snapshot_paths = util.get_snapshots(path)
+        for path in snapshot_paths:
+            try:
+                sim = pynbody.load(path)
+                sim.physical_units()
+                if len(sim.s) == 0 or self.key not in sim.s.loadable_keys():
+                    continue
+
+                if filter:
+                    values = sim.stars[filter][self.key]
+                else:
+                    values = sim.stars[self.key]
+                keys.extend(values)
+            except Exception as e:
+                # TODO: Handle this better
+                pass
+        if transform:
+            keys = transform(keys)
+
+        color = COLORS[self.color_idx]
+        self.color_idx += 1  # ...and don't forget to increment the list index
+        self.ax.hist(keys, self.bins, alpha=0.5, label=label, histtype="bar", facecolor=color)
+        # self.data.append(keys)
+
+    def generate(self, output_file: OutputPath = None):
+        # self.ax.hist(self.data, self.bins, alpha=0.5, label=self.labels, histtype="bar", facecolor=self.facecolors)
+        data = self.ax.containers
+        max_len = max([len(c) for c in self.ax.containers])
+        for idx in range(max_len):
+            cur_set = []
+            for c in self.ax.containers:
+                cur_set.append([c.tops[idx]])
+                cur_set.sort()
+        self.ax.legend()
+        self.ax.set_title(self.title)
+
+        if not output_file:
+            plt.show()
+        else:
+            plt.savefig(output_file)
+        plt.show()
+
 
 class Histogram:
     def __init__(self,
