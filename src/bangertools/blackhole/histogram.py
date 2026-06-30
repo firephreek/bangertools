@@ -1,5 +1,3 @@
-from typing import Iterable
-
 import matplotlib.pyplot as plt
 import pynbody
 
@@ -7,20 +5,21 @@ import pynbody
 class Histogram:
     def __init__(self,
                  snapshot_paths,
-                 key,
+                 key_field,
                  title=None,
                  xlabel=None,
                  ylabel=None,
                  bins=None,
-                 edgecolor='black'
-                 ):
+                 edgecolor='black',
+                 figsize=(8, 6)):
+        self.figsize = figsize
         self.filters = []
         self.bins = bins
         self.xlabel = xlabel
         self.ylabel = ylabel
         self.title = title
         self.snapshot_paths = snapshot_paths
-        self.key = key
+        self.key = key_field
         self.edgecolor = edgecolor
 
     def generate(self, output_file=None):
@@ -52,7 +51,7 @@ class Histogram:
             except Exception as e:
                 pass
 
-        plt.figure(figsize=(8, 6))
+        plt.figure(figsize=self.figsize)
         plt.hist(keys, self.bins, edgecolor=self.edgecolor)
         plt.xlabel(self.xlabel)
         plt.ylabel(self.ylabel)

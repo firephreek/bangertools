@@ -13,13 +13,20 @@ def load_snapshot(file_path: str, convert_units: bool = True):
     return snapshot
 
 
-def get_snapshots(dir_path: FilePath):
-    snapshot_paths = [
-        os.path.join(dir_path, p.name) for p in Path(dir_path).glob(f"*")
-
-        if re.fullmatch(r".*\.\d{6}", p.name)
-    ]
+def get_snapshots(paths: list[FilePath]):
+    """
+    Returns a sorted and de-duplicated collection of snapshot files from the provided paths.
+    :param paths: A list of directories of files.
+    """
+    snapshot_paths = []
+    for path in paths:
+        if os.path.isfile(path):
+            snapshot_paths.append(path)
+        elif os.path.isdir(path):
+            for p in Path(path).glob(f"*"):
+                if re.fullmatch(r".*\.\d{6}", p.name):
+                    snapshot_paths.append(os.path.join(path, p.name))
 
     snapshot_paths.sort()
 
-    return snapshot_paths
+    return set(snapshot_paths)
