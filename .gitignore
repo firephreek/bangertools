@@ -5,3 +5,4 @@
 src/testdata/
 src/tmp/
 dist/
+*.ipynb
