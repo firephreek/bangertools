@@ -49,13 +49,6 @@ def view_core_command(dir_path: FilePath = "./"):  # TODO: provide a pattern mat
     player.start()
 
 
-# @app.command(name="gas")
-# def view_core_command(dir_path: FilePath = "./"):  # TODO: provide a pattern matching option
-#     print(f"3d Rendering tipsy files in {dir_path}")
-#     renderer = FaceOnDensityRenderer(dir_path)
-#     player = ImagePlayer(renderer)
-#     player.start()
-
 
 @app.command(name="render")
 def view_core_command(dir_path: FilePath = "./"):  # TODO: provide a pattern matching option

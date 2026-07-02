@@ -8,7 +8,7 @@ import typer
 from bangertools.common import util
 
 OutputPath = Annotated[str, typer.Option(help="Optional file name to save the histogram to.")]
-COLORS = ["blue", "green", "red", "cyan", "yellow", "black", "orange",
+COLORS = ["blue", "green", "violet", "cyan", "yellow", "black", "orange",
           "purple", "brown", "gray", "olive", "lime", "teal", "navy", "maroon",
           "gold", "turquoise", "indigo", "violet", "khaki", "crimson"]
 

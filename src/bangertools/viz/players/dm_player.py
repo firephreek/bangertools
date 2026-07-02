@@ -13,7 +13,7 @@ class DMPlayer(Player):
             self,
             snapshots,
             qty='rho',
-            width="20 kpc",
+            width="8 kpc",
             units="Msol kpc^-2",
             cmap="magma",
             log=True,
@@ -57,7 +57,6 @@ class DMPlayer(Player):
     def _render_frame(self, snap):
 
         snap.physical_units()
-
         img = pynbody.plot.sph.image(
             snap.gas,
             self.qty,
@@ -73,7 +72,7 @@ class DMPlayer(Player):
 
         img = np.asarray(img)
 
-        print("frame:", type(img), img.shape)
+        # print("frame:", type(img), img.shape)
 
         return img
 
