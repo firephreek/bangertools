@@ -33,3 +33,29 @@ def get_snapshots(paths: PathList):
             )
 
     return sorted(snapshot_paths)
+
+
+def find_files(directory, extension, sort=True):
+    """
+    Returns all the files in the given directory that have the provided extension.
+    :return: A list with Path objects representing files with the given extension.
+    """
+    files = []
+
+    directory = Path(directory)
+    for file in directory.iterdir():
+        if file.is_file() and file.suffix == extension:
+            files.append(file)
+
+    return sorted(files) if sort else files
+
+
+def find_starlog_file(directory):
+    """
+    Return the path to the starlog file in the given directory.
+    :return: The first starlog file or None if no file with a '.starlog' extension exists
+    """
+    files = find_files(directory, '.starlog')
+    if files:
+        return files[0]
+    return None
