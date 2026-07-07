@@ -2,12 +2,13 @@ import numpy as np
 import pynbody
 import typer
 from matplotlib import pyplot as plt
+from matplotlib.animation import FuncAnimation
 
 from bangertools import FilePath, PathList
+from bangertools.common import util
 from .histogram import Histogram, StackedHistogram, OutputPath, BarHistogram
 from .reports import black_hole_log
 from .series import TimeSeries
-from ..common import util
 
 bh_app = typer.Typer(help="Reports and data generation")
 
@@ -103,3 +104,105 @@ def generate_stacked_histogram(paths: PathList, output: OutputPath = None):
     for i, path in enumerate(paths):  # TODO: Needs some good logging here
         stacked_histogram.add_snapshots(path, filter=filter, transform=transform)
     stacked_histogram.generate(output)
+
+
+@bh_app.command(name="tvd")
+def generate_temperature_density_scatterplot(paths: PathList, output: OutputPath = None, fps=24):
+    snapshot_paths = util.get_snapshots(paths)
+
+    # Find global plot limits across all snapshots
+    rho_min = np.inf
+    rho_max = -np.inf
+    temp_min = np.inf
+    temp_max = -np.inf
+
+    print("Calculating plot ranges...")
+
+    for snapshot in snapshot_paths:
+        sim = pynbody.load(snapshot)
+
+        density = np.asarray(sim.g["rho"])
+        temperature = np.asarray(sim.g["temp"])
+
+        # Remove invalid values for log scaling
+        valid = (
+                np.isfinite(density) &
+                np.isfinite(temperature) &
+                (density > 0) &
+                (temperature > 0)
+        )
+
+        density = density[valid]
+        temperature = temperature[valid]
+
+        rho_min = min(rho_min, density.min())
+        rho_max = max(rho_max, density.max())
+
+        temp_min = min(temp_min, temperature.min())
+        temp_max = max(temp_max, temperature.max())
+
+    print("Final ranges:")
+    print("Density:", rho_min, rho_max)
+    print("Temperature:", temp_min, temp_max)
+
+    # Create figure
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    scatter = ax.scatter([], [], s=5, alpha=0.5)
+
+    # Use log axes
+    ax.set_xscale('log')
+    ax.set_yscale('log')
+
+    # Add small margins around the data
+    ax.set_xlim(rho_min * 0.8, rho_max * 1.2)
+    ax.set_ylim(temp_min * 0.8, temp_max * 1.2)
+
+    ax.set_xlabel(r'Density ($\rho$)')
+    ax.set_ylabel(r'Temperature ($T$)')
+    ax.set_title(f'Temperature vs Density - {paths[0].split("/")[0]}')
+
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.minorticks_on()
+
+    def update(snapshot):
+        sim = pynbody.load(snapshot)
+
+        density = np.asarray(sim.g["rho"])
+        temperature = np.asarray(sim.g["temp"])
+
+        valid = (
+                np.isfinite(density) &
+                np.isfinite(temperature) &
+                (density > 0) &
+                (temperature > 0)
+        )
+
+        points = np.column_stack((
+            density[valid],
+            temperature[valid]
+        ))
+
+        scatter.set_offsets(points)
+
+        ax.set_title(snapshot)
+
+        return scatter,
+
+    ani = FuncAnimation(
+        fig,
+        update,
+        frames=snapshot_paths,
+        interval=50,
+        blit=False
+    )
+    if output:
+        ani.save(
+            output,
+            writer="ffmpeg",
+            fps=fps,
+            dpi=200
+        )
+    else:
+        plt.show()
