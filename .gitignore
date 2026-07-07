@@ -2,6 +2,9 @@
 .venv*
 *.pyc
 *.egg-info
+.DS_Store
+testdata/
+tmp/
 src/testdata/
 src/tmp/
 dist/
