@@ -1,7 +1,10 @@
 import re
 from pathlib import Path
 
+from rich import print
+
 from bangertools import PathList
+from bangertools.common.state import appstate
 
 
 def load_snapshot(file_path: str, convert_units: bool = True):
@@ -59,3 +62,12 @@ def find_starlog_file(directory):
     if files:
         return files[0]
     return None
+
+
+def print_verbose(message):
+    if appstate.verbose:
+        print(message)
+
+
+def print_error(message):
+    print(f"[bold red]{message}[/bold red]")
