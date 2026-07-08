@@ -10,7 +10,6 @@ COLORS = ["blue", "green", "red", "cyan", "yellow", "black", "orange",
           "purple", "brown", "gray", "olive", "lime", "teal", "navy", "maroon",
           "gold", "turquoise", "indigo", "violet", "khaki", "crimson"]
 
-
 class BarHistogram:
     color_idx = 0
     data = []
@@ -193,6 +192,7 @@ class Histogram:
                 sim.physical_units()
 
                 if len(sim.s) == 0 or self.key not in sim.s.loadable_keys():
+                    print(f'file {path} has {len(sim.s)} stars')
                     continue
 
                 values = None
@@ -221,3 +221,4 @@ class Histogram:
             plt.show()
         else:
             plt.savefig(output_file)
+

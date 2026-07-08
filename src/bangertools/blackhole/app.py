@@ -3,6 +3,13 @@ import pynbody
 import typer
 from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation
+from rich import print
+from rich.panel import Panel
+from rich.text import Text
+
+from bangertools.blackhole.his import LayeredHistogram
+
+panel = Panel(Text("Hello", justify="right"))
 
 from bangertools import FilePath, PathList, OutputPath
 from bangertools.blackhole.histogram import Histogram, StackedHistogram, BarHistogram
@@ -16,6 +23,13 @@ bh_app = typer.Typer(help="Reports and data generation", pretty_exceptions_show_
 @bh_app.command(name="info")
 def generate_blackholes_report(snapshot_path: FilePath):
     black_hole_log(snapshot_path or "./")
+
+
+@bh_app.command(name="foo")
+def testy_test():
+    print(panel)
+    util.print_error('this is an error')
+    util.print_verbose("verbose message")
 
 
 PROTON_MASS = 1.67 * 10 ** -27
@@ -41,21 +55,38 @@ def generate_blackhole_density_report(starlog_path: FilePath, output: OutputPath
 
 
 @bh_app.command(name="hist")
-def generate_histogram_report(key: str, paths: PathList = "./", output: OutputPath = None):
+def generate_histogram_report(paths: PathList = "./", layer: bool = False, key: str = 'tform',
+                              output: OutputPath = None):
     """
     Generates a histogram of blackholes found in the provided snapshots.
     :param paths: One more or paths with snapshot files or explicit snapshot files
     :param output: Optional. If provided, the plot will be saved to this file instead of being shown
     """
-    snapshot_paths = util.get_snapshots(paths)
-    histogram = Histogram(snapshot_paths, key,
-                          title=f"Histogram of Star Particles with {key} < 1",
-                          xlabel=key,
-                          ylabel="Number of Star Particles",
-                          bins=20)
 
-    histogram.add_filter(pynbody.filt.LowPass('tform', 0.0))
-    histogram.add_transform(lambda values: [k * -1 for k in values])
+    title = f"Histogram of Star Particles with {key} < 1"
+    ylabel = "Number of Star Particles"
+
+    kwargs = {
+        "title": title,
+        "xlabel": key,
+        "ylabel": ylabel,
+        "bins": 20
+    }
+
+    filter = pynbody.filt.LowPass('tform', 0.0)
+    transform = lambda values: [k * -1 for k in values]
+
+    if layer:
+        histogram = LayeredHistogram(key, **kwargs)
+        for path in paths:
+            # snapshot_paths = util.get_snapshots(path)
+            histogram.add_collection(path, transform=transform, filter=filter)
+    else:  # Default histogram
+        snapshot_paths = util.get_snapshots(paths)
+        histogram = Histogram(snapshot_paths, key, **kwargs)
+        histogram.add_transform(transform)
+        histogram.add_filter(filter)
+
     histogram.generate(output)
 
 
