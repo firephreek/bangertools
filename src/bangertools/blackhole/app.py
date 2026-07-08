@@ -10,7 +10,7 @@ from .histogram import Histogram, StackedHistogram, OutputPath, BarHistogram
 from .reports import black_hole_log
 from .series import TimeSeries
 
-bh_app = typer.Typer(help="Reports and data generation")
+bh_app = typer.Typer(help="Reports and data generation", pretty_exceptions_show_locals=True)
 
 
 @bh_app.command(name="info")
