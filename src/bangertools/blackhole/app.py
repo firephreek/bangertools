@@ -4,8 +4,8 @@ import typer
 from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation
 
-from bangertools import FilePath, PathList
-from bangertools.blackhole.histogram import OutputPath, Histogram, StackedHistogram
+from bangertools import FilePath, PathList, OutputPath
+from bangertools.blackhole.histogram import Histogram, StackedHistogram, BarHistogram
 from bangertools.blackhole.reports import black_hole_log
 from bangertools.blackhole.series import TimeSeries
 from bangertools.common import util

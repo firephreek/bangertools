@@ -1,13 +1,11 @@
 from pathlib import Path
-from typing import Annotated
 
 import matplotlib.pyplot as plt
 import pynbody
-import typer
 
+from bangertools import OutputPath
 from bangertools.common import util
 
-OutputPath = Annotated[str, typer.Option(help="Optional file name to save the histogram to.")]
 COLORS = ["blue", "green", "red", "cyan", "yellow", "black", "orange",
           "purple", "brown", "gray", "olive", "lime", "teal", "navy", "maroon",
           "gold", "turquoise", "indigo", "violet", "khaki", "crimson"]
