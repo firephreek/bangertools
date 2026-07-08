@@ -15,7 +15,7 @@ def load_snapshot(file_path: str, convert_units: bool = True):
     return snapshot
 
 
-def get_snapshots(paths: PathList):
+def get_snapshots(paths: PathList | str):
     """
     Returns a sorted and de-duplicated collection of snapshot files from the provided paths.
     :param paths: A list of directories of files.
@@ -38,7 +38,7 @@ def get_snapshots(paths: PathList):
     return sorted(snapshot_paths)
 
 
-def find_files(directory, extension, sort=True):
+def find_files(directory, extension, sort=True, recurse=False):
     """
     Returns all the files in the given directory that have the provided extension.
     :return: A list with Path objects representing files with the given extension.
@@ -46,6 +46,12 @@ def find_files(directory, extension, sort=True):
     files = []
 
     directory = Path(directory)
+    if recurse:
+        for x, dirname, files in directory.walk():
+            for file in files:
+                if file.is_file() and file.suffix == extension:
+                    files.append(file)
+
     for file in directory.iterdir():
         if file.is_file() and file.suffix == extension:
             files.append(file)

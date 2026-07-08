@@ -5,10 +5,10 @@ from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation
 
 from bangertools import FilePath, PathList
+from bangertools.blackhole.histogram import OutputPath, Histogram, StackedHistogram
+from bangertools.blackhole.reports import black_hole_log
+from bangertools.blackhole.series import TimeSeries
 from bangertools.common import util
-from .histogram import Histogram, StackedHistogram, OutputPath, BarHistogram
-from .reports import black_hole_log
-from .series import TimeSeries
 
 bh_app = typer.Typer(help="Reports and data generation", pretty_exceptions_show_locals=True)
 

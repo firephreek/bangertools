@@ -1,6 +1,7 @@
 import glob
 import os
 from collections import Counter
+from pathlib import Path
 from typing import Annotated
 
 import typer
@@ -8,6 +9,7 @@ from rich import print
 from typer import Argument
 
 from bangertools import FilePath, SnapshotPath
+from bangertools.common import util
 from bangertools.common.util import load_snapshot
 
 ahf_app = typer.Typer(help="AHF utilities and reports")
@@ -369,3 +371,39 @@ def fix_zeros(snapshot_path: FilePath):
     with open(startrun_path, 'w') as f:
         f.write(content)
     print(f"Updated startrun: {startrun_path}")
+
+
+def load_sim(path):
+    files = util.find_files(path, '.AHF_halos', recurse=True)
+    pass
+
+
+import numpy as np
+import pynbody
+
+
+def export_columns(snapshot, output_file, columns=()):
+    sim = pynbody.load(snapshot.as_posix())
+
+    # Ensure all requested fields exist
+    missing = [c for c in columns if c not in sim.loadable_keys() and c not in sim.keys()]
+    if missing:
+        raise KeyError(f"Snapshot is missing fields: {missing}")
+
+    print('getting data')
+    data = np.column_stack([np.asarray(sim[c]) for c in columns])
+
+    # Save with a header
+    print(f'saving as {output_file}')
+    np.savetxt(output_file, data, header=" ".join(columns), comments="")
+
+
+@ahf_app.command(name="report")
+def generate_bh_report(filepath: FilePath):
+    walk = Path(filepath).walk()
+    for x, dirs, files in walk:
+        for dir in dirs:
+            curPath = os.path.join(filepath, dir)
+            for idx, snap in enumerate(util.get_snapshots(curPath)):
+                print(f'exporting columns from {snap.name}')
+                export_columns(snap, f"{idx}.txt", columns=('iord', 'mass'))
