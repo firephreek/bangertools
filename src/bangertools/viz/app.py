@@ -12,10 +12,10 @@ from bangertools.viz.players.collapse_tracer_player import CollapseTracerPlayer
 from bangertools.viz.players.dm_player import DMPlayer
 from .generic_renderer import GenericRenderer, CollapseRenderer
 
-app = typer.Typer(help="Data visualization commands")
+viz_app = typer.Typer(help="Data visualization commands")
 
 
-@app.command(name="trace")
+@viz_app.command(name="trace")
 def view_collapse_trace(dir_path: FilePath = "./"):
     npz_file = os.path.join(dir_path, "core_trajectories.npz")
     frames = np.load(npz_file)
@@ -40,7 +40,7 @@ def load_frames(dir_path):
     return frames
 
 
-@app.command(name="gas")
+@viz_app.command(name="gas")
 def view_core_command(dir_path: FilePath = "./"):  # TODO: provide a pattern matching option
     print(f"3d Rendering tipsy files in {dir_path}")
 
@@ -57,7 +57,7 @@ def view_core_command(dir_path: FilePath = "./"):  # TODO: provide a pattern mat
 #     player.start()
 
 
-@app.command(name="render")
+@viz_app.command(name="render")
 def view_core_command(dir_path: FilePath = "./"):  # TODO: provide a pattern matching option
     print(f"3d Rendering tipsy files in {dir_path}")
     renderer = GenericRenderer(dir_path)
@@ -66,7 +66,7 @@ def view_core_command(dir_path: FilePath = "./"):  # TODO: provide a pattern mat
     player.start()
 
 
-@app.command(name="collapse")
+@viz_app.command(name="collapse")
 def render_traj_command(dir_path: FilePath = "./"):
     print(f"3d Rendering tipsy files in {dir_path}")
     renderer = CollapseRenderer(dir_path)
@@ -75,4 +75,4 @@ def render_traj_command(dir_path: FilePath = "./"):
 
 
 if __name__ == "__main__":
-    app()
+    viz_app()
