@@ -16,7 +16,7 @@ def load_snapshot(file_path: str, convert_units: bool = True):
     return snapshot
 
 
-def get_snapshots(paths: PathList | str):
+def get_snapshots(paths: list[str] | str):
     """
     Returns a sorted and de-duplicated collection of snapshot files from the provided paths.
     :param paths: A list of directories of files.
