@@ -30,6 +30,7 @@ def generate_blackhole_density_report(
         output: OutputPath = "",
         title: str = Option("", "--title", help="Alternate title for the histogram."),
         alpha: float = Option(None, "--alpha", help="The alpha transparency, between 0 and 1"),
+        bins: int = Option(10, "--bins", help="The number of 'bins' to group the data into"),
         z_sort: bool = Option(False, "--zsort",
                               help="If set, will arrange each bin by height from front to back")):
     """
@@ -41,8 +42,8 @@ def generate_blackhole_density_report(
                                          title=title or f"Histogram of rhoform for stars with tform < 0",
                                          xlabel="rhoform",
                                          ylabel="number of particles",
+                                         bins=bins,
                                          alpha=alpha)
-
 
     for path in starlog_paths:
         util.verbose(f"Loading starlog files in {path}")
@@ -63,6 +64,8 @@ def generate_histogram_report(paths: PathList = "./",
                               stack: bool = Option(False, "--stack", "-s", "--stacked",
                                                    help="Creates the histogram as a stacked bar chart"),
                               key: str = 'tform',
+                              alpha: float = Option(None, "--alpha", help="The alpha transparency, between 0 and 1"),
+                              bins: int = Option(20, "--bins", help="The number of 'bins' to group the data into"),
                               output: OutputPath = None):
     """
     Generates a histogram of blackholes found in the provided snapshots.
@@ -75,14 +78,14 @@ def generate_histogram_report(paths: PathList = "./",
         "title": title,
         "xlabel": key,
         "ylabel": ylabel,
-        "bins": 20
+        "bins": bins
     }
 
     filter = pynbody.filt.LowPass('tform', 0.0)
     transform = lambda values: [k * -1 for k in values]
 
     if layer:
-        histogram = LayeredHistogram(key, **kwargs)
+        histogram = LayeredHistogram(key, alpha=alpha, **kwargs)
     elif stack:
         histogram = StackedHistogram(key, **kwargs)
     else:  # Default histogram
