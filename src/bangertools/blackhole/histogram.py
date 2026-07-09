@@ -89,8 +89,9 @@ class HistogramBase:
 
 
 class LayeredHistogram(HistogramBase):
-    def __init__(self, key_field, z_sort=False, **kwargs):
+    def __init__(self, key_field, alpha=None, z_sort=False, **kwargs):
         super().__init__(key_field, **kwargs)
+        self.alpha = alpha
         self.sort = z_sort
 
     def generate(self, output_file: str = ""):
@@ -115,6 +116,7 @@ class LayeredHistogram(HistogramBase):
                 self.bins,
                 label=label,
                 color=color,
+                alpha=self.alpha
             )
 
         # Reorder legend to insertion order.

@@ -4,7 +4,7 @@ import typer
 from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation
 from rich import print
-from typer import Option
+from typer import Option, Argument
 
 from bangertools import FilePath, PathList, OutputPath
 from bangertools.blackhole.histogram import StackedHistogram, BarHistogram, LayeredHistogram
@@ -24,20 +24,35 @@ PROTON_MASS = 1.67 * 10 ** -27
 
 
 @bh_app.command(name="rho")
-def generate_blackhole_density_report(starlog_paths: PathList, output: OutputPath = "", zsort: bool = False):
+def generate_blackhole_density_report(
+        starlog_paths: list[str] = Argument(...,
+                                            help="One or more of a: directory that has a .starlog file or the path to a starlog file"),
+        output: OutputPath = "",
+        title: str = Option("", "--title", help="Alternate title for the histogram."),
+        alpha: float = Option(None, "--alpha", help="The alpha transparency, between 0 and 1"),
+        z_sort: bool = Option(False, "--zsort",
+                              help="If set, will arrange each bin by height from front to back")):
+    """
+    Generates a layered histogram of rhoform values for each starlog found in the provided directories.
+    """
+
     layered_histogram = LayeredHistogram('rhoform',
-                                         z_sort=zsort,
-                                         title=f"Histogram of rhoform for stars with tform < 0",
+                                         z_sort=z_sort,
+                                         title=title or f"Histogram of rhoform for stars with tform < 0",
                                          xlabel="rhoform",
-                                         ylabel="number of particles")
+                                         ylabel="number of particles",
+                                         alpha=alpha)
+
 
     for path in starlog_paths:
+        util.verbose(f"Loading starlog files in {path}")
         star_path = util.find_files(path, '.starlog')[0].as_posix()
         starlog = pynbody.snapshot.tipsy.StarLog(star_path)
         starlog.physical_units()
         particles = starlog.stars[pynbody.filt.LowPass('tform', 0.0)]
         layered_histogram.add_data(particles["rhoform"].in_units("m_p cm^-3"), label=path)
 
+    util.verbose("Generating histogram")
     layered_histogram.generate(output)
 
 
