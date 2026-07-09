@@ -2,6 +2,7 @@ import re
 from pathlib import Path
 
 from rich import print
+from rich.panel import Panel
 
 from bangertools import PathList
 from bangertools.common.state import appstate
@@ -70,14 +71,23 @@ def find_starlog_file(directory):
     return None
 
 
-def print_verbose(message):
+def verbose(message):
     if appstate.verbose:
         print(message)
-pv = print_verbose
 
 
-def print_error(message):
+def err(message):
     print(f"[bold red]{message}[/bold red]")
-pe = print_error
 
 
+def warn(message):
+    print(f"[bold yellow]{message}[/bold yellow]")
+    return None
+
+
+def panel(title, *messages):
+    print(Panel(
+        *messages,
+        title_align="left",
+        title=title
+    ))
