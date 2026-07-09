@@ -19,7 +19,7 @@ def save_data_to_parq_file(file_paths: PathList, out: str, cols: str, exclude_so
     writer = None
 
     try:
-        util.verbose(f"Loading snapshots from '{snapshot_paths}'")
+        util.verbose(f"Loading snapshots from '{[path.as_posix() for path in snapshot_paths]}'")
         for path in snapshot_paths:
             util.verbose(f"Loading {path}")
             sim = pynbody.load(path)
@@ -34,10 +34,11 @@ def save_data_to_parq_file(file_paths: PathList, out: str, cols: str, exclude_so
                 else:
                     util.warn(f"Ignoring missing cols '{cols}' in {path}'")
 
-            table = pa.table({
-                col: np.asarray(sim[col])
-                for col in cols
-            })
+            util.verbose(f"Creating table schema")
+
+            cols_schema = {col: np.asarray(sim[col]) for col in cols}
+
+            table = pa.table(cols_schema)
 
             if exclude_source:
                 table = table.append_column(
