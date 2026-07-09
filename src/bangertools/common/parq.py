@@ -55,7 +55,8 @@ def save_data_to_parq_file(file_paths: PathList, out: str, cols: str, exclude_so
             util.verbose(f"Writing data to {out}")
             writer.write_table(table)
         # Final stats message
-        writer.close()
+        if writer:
+            writer.close()
         pf = pq.ParquetFile(out)
         print(pf.metadata)
     except Exception as e:
