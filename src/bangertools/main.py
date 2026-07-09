@@ -1,5 +1,3 @@
-from typing import Annotated
-
 import numpy as np
 import pyarrow as pa
 import pyarrow.parquet as pq
@@ -23,9 +21,6 @@ app.add_typer(ahf_app, name="ahf")
 @app.callback()
 def main(verbose: bool = typer.Option(False, "--verbose", "-v"), ):
     appstate.verbose = verbose
-
-
-OutputFile = Annotated[str, typer.Argument(help="File name to save the extracted data to.")]
 
 
 @app.command("parq")

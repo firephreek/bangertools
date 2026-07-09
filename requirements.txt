@@ -128,6 +128,8 @@ ptyprocess==0.7.0 ; sys_platform != 'emscripten' and sys_platform != 'win32'
     # via pexpect
 pure-eval==0.2.3
     # via stack-data
+pyarrow==24.0.0
+    # via bangertools
 pycparser==3.0 ; implementation_name == 'pypy'
     # via cffi
 pyerfa==2.0.1.5
