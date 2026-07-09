@@ -51,14 +51,14 @@ class HistogramBase:
         snapshot_data = []
         for path in snapshot_paths:
             try:
-                util.print_verbose(f"Loading {path}")
+                util.verbose(f"Loading {path}")
                 sim = pynbody.load(path)
 
                 if self.key not in sim.s.loadable_keys():
-                    util.print_error(f"{self.key} not found in {path}. File not loaded.")
+                    util.err(f"{self.key} not found in {path}. File not loaded.")
                     continue
                 elif len(sim.s) == 0:
-                    util.print_verbose(f"No stars found in {path}")
+                    util.verbose(f"No stars found in {path}")
                     continue
 
                 sim.physical_units()
@@ -70,7 +70,7 @@ class HistogramBase:
                 snapshot_data.extend(values)
 
             except Exception as e:
-                util.print_error(f"Unexpected error: {e}")
+                util.err(f"Unexpected error: {e}")
 
         if transform:
             snapshot_data = transform(snapshot_data)
@@ -88,16 +88,6 @@ class HistogramBase:
 class LayeredHistogram(HistogramBase):
 
     def generate(self, output_file: OutputPath = ""):
-        # self.ax.hist(self.data, self.bins, alpha=0.5, label=self.labels, histtype="bar", facecolor=self.facecolors)
-        # data = self.ax.containers
-
-        # max_len = max([len(c) for c in self.ax.containers])
-        # for idx in range(max_len):
-        #     cur_set = []
-        #     for c in self.ax.containers:
-        #         cur_set.append([c.tops[idx]])
-        #         cur_set.sort()
-
         result = self.ax.hist(self.data, self._bins, label=self.labels, facecolor=self.facecolors)
 
         self.ax.legend()
