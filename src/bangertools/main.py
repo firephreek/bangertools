@@ -5,7 +5,7 @@ from bangertools import PathList
 from bangertools.ahf.app import ahf_app
 from bangertools.blackhole.app import bh_app
 from bangertools.common.parq import save_data_to_parq_file
-from bangertools.common.state import appstate
+from bangertools.common.util import appstate
 from bangertools.viz.app import viz_app
 
 app = Typer()

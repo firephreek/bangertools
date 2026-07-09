@@ -2,10 +2,13 @@ import numpy as np
 import pyarrow as pa
 import pyarrow.parquet as pq
 import pynbody
+from typer import Typer
 
 from bangertools import PathList
 from bangertools.common import util
-from bangertools.common.state import appstate
+from bangertools.common.util import appstate
+
+app = Typer()
 
 
 def save_data_to_parq_file(file_paths: PathList, out: str, cols: str, exclude_source: bool, ignore_missing_cols: bool):
@@ -62,3 +65,7 @@ def save_data_to_parq_file(file_paths: PathList, out: str, cols: str, exclude_so
         print(pf.metadata)
     except Exception as e:
         util.err(e)
+
+
+if __name__ == '__main__':
+    app()

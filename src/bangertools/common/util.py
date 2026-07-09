@@ -1,11 +1,17 @@
 import re
+from dataclasses import dataclass
 from pathlib import Path
 
 from rich import print
 from rich.panel import Panel
 
-from bangertools import PathList
-from bangertools.common.state import appstate
+
+@dataclass
+class AppState:
+    verbose: bool = False
+
+
+appstate = AppState()
 
 
 def load_snapshot(file_path: str, convert_units: bool = True):
