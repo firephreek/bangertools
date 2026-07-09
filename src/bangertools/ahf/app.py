@@ -49,7 +49,8 @@ def snap_keys(file_path: Annotated[str, Argument(help="Path to the file")]):
     """
     try:
         snapshot = load_snapshot(file_path)
-        print(f"keys inside the snapshot are: {snapshot.loadable_keys()}")
+        keys = snapshot.loadable_keys()
+        print(f"keys inside the snapshot are: {sorted(keys)}")
     except OSError:  # Invalid snap file, must be an AHF...
         AHF = load_AHF(file_path)
         print(f"keys inside the AHF are: {AHF.columns.tolist()}")
