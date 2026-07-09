@@ -24,6 +24,11 @@ def main(verbose: bool = typer.Option(False, "--verbose", "-v"), ):
     appstate.verbose = verbose
 
 
+@app.command("keys")
+def get_keys(file_path: str):
+    from bangertools import ahf
+    ahf.app.snap_keys(file_path)
+
 @app.command("parq")
 def save_data_to_parq_file(file_paths: PathList,
                            out: str = Option(..., "--out", "-o", help="File name to save the extracted data to"),
