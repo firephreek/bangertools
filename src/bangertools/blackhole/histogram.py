@@ -17,7 +17,7 @@ class HistogramBase:
                  title=None,
                  xlabel=None,
                  ylabel=None,
-                 bins=None,
+                 bins=10,
                  edgecolor='black',
                  figsize=(8, 6)):
         self.facecolors = []
@@ -40,6 +40,12 @@ class HistogramBase:
         color = COLORS[self._color_idx]  # Get the next color from the collection
         self._color_idx += 1  # don't forget to increment the list index
         return color
+
+    def add_data(self, data, label=None, color=None):
+
+        self.facecolors.append(color or self.get_next_color())
+        self.labels.append(label)
+        self.data.append(data)
 
     def add_collection(self, snapshot_path, label=None, filter=None, transform=None, color=None, edgecolor="black",
                        filled=True):
@@ -75,7 +81,7 @@ class HistogramBase:
         if not label:  # No explict label, we'll have to build one...
             label = Path(snapshot_path).name
         self.labels.append(label)
-        self.facecolors.append(self.get_next_color())
+        self.facecolors.append(color or self.get_next_color())
         self.data.append(snapshot_data)
 
     def generate(self, output_file=None):
