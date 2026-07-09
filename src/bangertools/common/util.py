@@ -73,7 +73,11 @@ def find_starlog_file(directory):
 def print_verbose(message):
     if appstate.verbose:
         print(message)
+pv = print_verbose
 
 
 def print_error(message):
     print(f"[bold red]{message}[/bold red]")
+pe = print_error
+
+
