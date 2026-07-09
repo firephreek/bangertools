@@ -6,8 +6,9 @@ from matplotlib.animation import FuncAnimation
 from rich import print
 from rich.panel import Panel
 from rich.text import Text
+from typer import Option
 
-from bangertools.blackhole.his import LayeredHistogram
+from bangertools.blackhole.his import LayeredHistogram, Layered3dHistogram
 
 panel = Panel(Text("Hello", justify="right"))
 
@@ -55,7 +56,11 @@ def generate_blackhole_density_report(starlog_path: FilePath, output: OutputPath
 
 
 @bh_app.command(name="hist")
-def generate_histogram_report(paths: PathList = "./", layer: bool = False, key: str = 'tform',
+def generate_histogram_report(paths: PathList = "./",
+                              layer: bool = False,
+                              three_d: bool = Option(False, "--3d",
+                                                     help="Sets the plot type to generate a 3d interactive histogram"),
+                              key: str = 'tform',
                               output: OutputPath = None):
     """
     Generates a histogram of blackholes found in the provided snapshots.
@@ -79,7 +84,10 @@ def generate_histogram_report(paths: PathList = "./", layer: bool = False, key: 
     if layer:
         histogram = LayeredHistogram(key, **kwargs)
         for path in paths:
-            # snapshot_paths = util.get_snapshots(path)
+            histogram.add_collection(path, transform=transform, filter=filter)
+    elif three_d:
+        histogram = Layered3dHistogram(key, **kwargs)
+        for path in paths:
             histogram.add_collection(path, transform=transform, filter=filter)
     else:  # Default histogram
         snapshot_paths = util.get_snapshots(paths)

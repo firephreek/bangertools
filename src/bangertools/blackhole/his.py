@@ -84,6 +84,58 @@ class HistogramBase:
         raise NotImplementedError("This method must be implemented in a derived class")
 
 
+class Layered3dHistogram(HistogramBase):
+    def generate(self, output_file=None):
+        import numpy as np
+        import plotly.graph_objects as go
+
+        fig = go.Figure()
+
+        bins = np.histogram_bin_edges(
+            np.concatenate(self.data),
+            bins=self._bins
+        )
+
+        for i, (data, label, color) in enumerate(
+                zip(self.data, self.labels, self.facecolors)
+        ):
+            counts, edges = np.histogram(data, bins=bins)
+            centers = (edges[:-1] + edges[1:]) / 2
+
+            fig.add_trace(
+                go.Scatter3d(
+                    x=centers,
+                    y=np.full_like(centers, i),
+                    z=counts,
+                    mode="lines",
+                    name=label,
+                    line=dict(
+                        color=color,
+                        width=5
+                    )
+                )
+            )
+
+        fig.update_layout(
+            title=self.title,
+            scene=dict(
+                xaxis_title=self.xlabel,
+                yaxis_title="Snapshot",
+                zaxis_title="Count",
+                yaxis=dict(
+                    tickmode="array",
+                    tickvals=list(range(len(self.labels))),
+                    ticktext=self.labels,
+                ),
+            ),
+            width=1000,
+            height=800,
+        )
+
+        if output_file:
+            fig.write_html(output_file)
+        else:
+            fig.show()
 class LayeredHistogram(HistogramBase):
     def generate(self, output_file=None):
         import numpy as np
