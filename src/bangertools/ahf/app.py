@@ -407,3 +407,7 @@ def generate_bh_report(filepath: FilePath):
             for idx, snap in enumerate(util.get_snapshots(curPath)):
                 print(f'exporting columns from {snap.name}')
                 export_columns(snap, f"{idx}.txt", columns=('iord', 'mass'))
+
+
+if __name__ == '__main__':
+    ahf_app()
