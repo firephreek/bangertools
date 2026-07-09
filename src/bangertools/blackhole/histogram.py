@@ -89,14 +89,27 @@ class HistogramBase:
 
 
 class LayeredHistogram(HistogramBase):
+    def __init__(self, key_field, z_sort=False, **kwargs):
+        super().__init__(key_field, **kwargs)
+        self.sort = z_sort
 
     def generate(self, output_file: str = ""):
-        datasets = sorted(
-            zip(self.data, self.labels, self.facecolors),
-            key=lambda x: max(np.histogram(x[0], bins=self.bins)[0])
-        )
+        datasets = list(zip(self.data, self.labels, self.facecolors))
 
-        for data, label, color in datasets:
+        # Legend order is always insertion order.
+        legend_labels = [label for _, label, _ in datasets]
+
+        # Determine drawing order.
+        if self.sort:
+            draw_datasets = sorted(
+                datasets,
+                key=lambda x: max(np.histogram(x[0], bins=self.bins)[0])
+            )
+        else:
+            draw_datasets = datasets
+
+        # Plot back-to-front.
+        for data, label, color in reversed(draw_datasets):
             self.ax.hist(
                 data,
                 self.bins,
@@ -104,7 +117,14 @@ class LayeredHistogram(HistogramBase):
                 color=color,
             )
 
-        self.ax.legend()
+        # Reorder legend to insertion order.
+        handles, labels = self.ax.get_legend_handles_labels()
+        handle_map = dict(zip(labels, handles))
+        self.ax.legend([handle_map[l] for l in legend_labels], legend_labels)
+        self.data = self.data[::-1]
+        self.labels = self.labels[::-1]
+        self.facecolors = self.facecolors[::-1]
+
         self.ax.set_title(self.title)
         plt.xlabel(self.xlabel)
         plt.ylabel(self.ylabel)
@@ -114,7 +134,6 @@ class LayeredHistogram(HistogramBase):
             plt.savefig(output_file)
         else:
             plt.show()
-        plt.show()
 
 
 class BarHistogram(HistogramBase):

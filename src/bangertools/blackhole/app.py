@@ -24,18 +24,21 @@ PROTON_MASS = 1.67 * 10 ** -27
 
 
 @bh_app.command(name="rho")
-def generate_blackhole_density_report(starlog_paths: PathList, output: OutputPath = None):
+def generate_blackhole_density_report(starlog_paths: PathList, output: OutputPath = "", zsort: bool = False):
     layered_histogram = LayeredHistogram('rhoform',
-                                         title=f"[{starlog_paths}]\nHistogram of rhoform for stars with tform < 0",
+                                         z_sort=zsort,
+                                         title=f"Histogram of rhoform for stars with tform < 0",
                                          xlabel="rhoform",
                                          ylabel="number of particles")
+
     for path in starlog_paths:
-        starlog = pynbody.snapshot.tipsy.StarLog(path)
+        star_path = util.find_files(path, '.starlog')[0].as_posix()
+        starlog = pynbody.snapshot.tipsy.StarLog(star_path)
         starlog.physical_units()
         particles = starlog.stars[pynbody.filt.LowPass('tform', 0.0)]
         layered_histogram.add_data(particles["rhoform"].in_units("m_p cm^-3"), label=path)
 
-    layered_histogram.generate()
+    layered_histogram.generate(output)
 
 
 @bh_app.command(name="hist")
