@@ -5,9 +5,9 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import pynbody
 import typer
-from typer import Typer, Option
+from typer import Typer, Option, Argument
 
-from bangertools import OutputPath, PathList
+from bangertools import PathList
 from bangertools.ahf.app import ahf_app
 from bangertools.blackhole.app import bh_app
 from bangertools.common import util
@@ -25,25 +25,17 @@ def main(verbose: bool = typer.Option(False, "--verbose", "-v"), ):
     appstate.verbose = verbose
 
 
-OutputFile = Annotated[str, Option(prompt_required=True, help="Optional file name to save the histogram to.")]
+OutputFile = Annotated[str, typer.Argument(help="File name to save the extracted data to.")]
 
 
 @app.command("parq")
-def save_data_to_parq_file(file_paths: PathList, out: OutputPath = "", cols: str = "",
+def save_data_to_parq_file(file_paths: PathList,
+                           out: str = Argument(help="File name to save the extracted data to."),
+                           cols: str = Option(..., "--cols", "-c", help="columns to extract"),
                            ignore_missing_cols: bool = False):
     """
-    Extracts the cols from all the snapshots found in the [file_paths] provided and writes them into a pandas compatible file using parquet.
-    Files saved this way can be read using
-
-    ```
-    import pandas as pd
-    data_fame = pd.read_parquet(parq_file)
-    ```
-
-    :param file_paths: A collection of paths to snapshots or directories containing snapshots
-    :param out: The name of the file to save the content to. e.g. my_cols.parq
-    :param cols: A comma separated list of columns to extract. If a snapshot doesn't contain the column, an error will be printed and the file will be skipped unless `ignore_missing_cols` is set to true.
-    :param ignore_missing_cols: Default: False  If set to True, snapshots that are missing some or all of the cols specified will *NOT* be skipped
+    Extract a set of columns from all snapshots found in the provided paths and write them
+    to a Pandas-compatible Parquet file.
     """
 
     snapshot_paths = util.get_snapshots(file_paths)
