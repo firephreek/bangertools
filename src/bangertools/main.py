@@ -13,6 +13,7 @@ from bangertools.common.state import appstate
 from bangertools.viz.app import viz_app
 
 app = Typer()
+
 app.add_typer(viz_app, name="view")
 app.add_typer(bh_app, name="bh")
 app.add_typer(ahf_app, name="ahf")
