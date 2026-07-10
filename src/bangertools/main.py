@@ -27,14 +27,15 @@ def get_keys(file_path: str):
 
 
 @app.command("parq")
-def sve_data_to_parq_file(file_paths: PathList,
-                          out: str = Option(..., "--out", "-o", help="File name to save the extracted data to"),
-                          cols: str = Option(..., "--cols", "-c",
-                                             help="The columns to be extracted into the new file"),
-                          exclude_source: bool = Option(False, "--no-source",
-                                                        help="If set, the source column will not be added to the export"),
-                          ignore_missing_cols: bool = Option(False, "--ignore-missing-cols",
-                                                             help="Snapshots that are missing columns will be skipped unless this is set.")):
+def save_data_to_parq_file_command(file_paths: PathList,
+                                   out: str = Option(..., "--out", "-o",
+                                                     help="File name to save the extracted data to"),
+                                   cols: str = Option(..., "--cols", "-c",
+                                                      help="The columns to be extracted into the new file e.g. --cols=iord,mass,tempEff"),
+                                   exclude_source: bool = Option(False, "--no-source",
+                                                                 help="If set, the source column will not be added to the export"),
+                                   ignore_missing_cols: bool = Option(False, "--ignore-missing-cols",
+                                                                      help="Snapshots that are missing columns will be skipped unless this is set.")):
     save_data_to_parq_file(file_paths, out, cols, exclude_source, ignore_missing_cols)
 
 
